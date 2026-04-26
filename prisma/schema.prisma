@@ -1,0 +1,23 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model PartnershipInquiry {
+  id           String   @id @default(cuid())
+  name         String
+  phone        String
+  role         String
+  landArea     String?
+  location     String?
+  monthlyNeeds String?
+  commodity    String?
+  notes        String?
+  status       String   @default("NEW")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
