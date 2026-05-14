@@ -9,6 +9,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { DATA_TANI } from "@/lib/data-dummy";
+import BuyNowButton from "@/components/customer/BuyNowButton";
 
 type DetailPageProps = {
   params: Promise<{ id: string }>;
@@ -60,8 +61,13 @@ export default async function DetailKatalogPage({ params }: DetailPageProps) {
           Kembali ke Katalog
         </Link>
 
-        <article className="rounded-2xl border border-zinc-800 bg-gradient-to-br from-zinc-900 to-zinc-900/60 p-5 shadow-[0_16px_48px_rgba(0,0,0,0.45)] md:p-7">
-          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+        <article className="relative overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 p-5 shadow-[0_16px_48px_rgba(0,0,0,0.45)] md:p-7">
+          <div className="pointer-events-none absolute inset-0">
+            <div className="absolute -right-24 -top-20 h-56 w-56 rounded-full bg-zinc-800/30 blur-3xl" />
+            <div className="absolute -bottom-20 -left-16 h-48 w-48 rounded-full bg-emerald-900/20 blur-3xl" />
+          </div>
+
+          <div className="relative z-10 flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-4">
               <div className="relative h-20 w-20 overflow-hidden rounded-full border-2 border-emerald-400/70">
                 <Image
@@ -86,13 +92,22 @@ export default async function DetailKatalogPage({ params }: DetailPageProps) {
               </div>
             </div>
 
-            <Link
-              href="/katalog-tani/id/chat"
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-500 px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-400"
-            >
-              <MessageCircleMore className="h-4 w-4" />
-              Hubungi via Forum Chat
-            </Link>
+            <div className="flex flex-wrap gap-3">
+              <BuyNowButton productId={produk.id} />
+              <Link
+                href="/profile"
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-zinc-700 bg-zinc-900 px-5 py-3 text-sm font-semibold text-zinc-100 transition hover:border-emerald-400 hover:text-emerald-300"
+              >
+                Lihat Profile Customer
+              </Link>
+              <Link
+                href="/katalog-tani/id/chat"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-500 px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-400"
+              >
+                <MessageCircleMore className="h-4 w-4" />
+                Hubungi via Forum Chat
+              </Link>
+            </div>
           </div>
         </article>
 

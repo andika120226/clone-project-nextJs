@@ -11,6 +11,7 @@ const navLinks = [
   { label: "Home", href: "/" },
   { label: "Info Tani", href: "/info-tani" },
   { label: "Info Terkini", href: "/info-terkini" },
+  { label: "Profile", href: "/profile" },
 ];
 
 const infoTaniLinks = [
@@ -114,12 +115,20 @@ export default function RootLayout({
                 ))}
               </div>
 
-              <Link
-                href="/hubungi-kami"
-                className="rounded-full bg-linear-to-r from-green-500 to-cyan-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/30 transition hover:scale-[1.02] hover:shadow-cyan-500/40"
-              >
-                Hubungi Kami
-              </Link>
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/auth/login"
+                  className="rounded-full border border-cyan-300/70 bg-white/80 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-emerald-400 hover:text-emerald-700"
+                >
+                  Masuk Customer
+                </Link>
+                <Link
+                  href="/hubungi-kami"
+                  className="rounded-full bg-linear-to-r from-green-500 to-cyan-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/30 transition hover:scale-[1.02] hover:shadow-cyan-500/40"
+                >
+                  Hubungi Kami
+                </Link>
+              </div>
             </nav>
 
             <div className="mx-auto flex w-full max-w-7xl items-center gap-4 overflow-x-auto px-4 pb-3 md:hidden sm:px-6 lg:px-8">
