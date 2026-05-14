@@ -1,22 +1,14 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { MapPinned, Warehouse } from "lucide-react";
+import { ChevronLeft, Warehouse } from "lucide-react";
 import { DATA_TANI } from "@/lib/data-dummy";
 import DetailInteractivePanel from "@/components/info_tani/DetailInteractivePanel";
+import ProfileSection from "@/components/info_tani/ProfileSection";
+import StockDashboard from "@/components/info_tani/StockDashboard";
 
 type InfoTaniDetailPageProps = {
   params: Promise<{ id: string }>;
 };
-
-function normalizeImagePath(path: string) {
-  return path.replace("/image/", "/");
-}
-
-function progressFromStock(stokKg: number) {
-  const value = Math.round((stokKg / 600) * 100);
-  return Math.min(100, Math.max(8, value));
-}
 
 function unitPriceByProduct(productName: string) {
   if (productName.toLowerCase().includes("kopi")) {
@@ -56,69 +48,38 @@ export default async function InfoTaniDetailPage({
     notFound();
   }
 
-  const stockProgress = progressFromStock(farmer.stok);
   const unitPrice = unitPriceByProduct(farmer.nama_produk);
   const bankName = bankNames[id.length % bankNames.length];
   const accountNumber = getAccountNumber(`${farmer.id}-${farmer.nama_petani}`);
 
   return (
     <main className="min-h-screen bg-cyan-100/55 pb-16 pt-4">
+      {/* Back Button */}
+      <div className="mx-auto w-full max-w-6xl px-4 sm:px-0">
+        <Link
+          href="/info-tani"
+          className="inline-flex items-center gap-2 rounded-lg bg-cyan-200/60 px-4 py-2 text-sm font-medium text-cyan-900 transition hover:bg-cyan-200/80 hover:text-cyan-950"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Kembali ke Info Tani
+        </Link>
+      </div>
+
       <section className="mx-auto flex w-full max-w-6xl flex-col gap-6 rounded-3xl border border-cyan-200 bg-cyan-100/70 p-5 shadow-sm sm:p-7 lg:p-8">
-        <article className="overflow-hidden rounded-3xl border border-cyan-200 bg-white shadow-sm">
-          <div className="relative h-56 w-full sm:h-72">
-            <Image
-              src={normalizeImagePath(farmer.gambar_produk)}
-              alt={farmer.nama_produk}
-              fill
-              className="object-cover"
-              priority
-            />
-            <div className="absolute inset-0 bg-linear-to-t from-slate-900/55 via-slate-900/20 to-transparent" />
-            <div className="absolute bottom-0 left-0 right-0 p-5 text-white sm:p-6">
-              <p className="text-xs uppercase tracking-[0.2em] text-cyan-100">
-                Profil Petani
-              </p>
-              <h1 className="mt-1 text-2xl font-bold sm:text-3xl">
-                {farmer.nama_petani}
-              </h1>
-              <p className="mt-2 inline-flex items-center gap-2 text-sm text-cyan-50">
-                <MapPinned className="h-4 w-4" />
-                {farmer.lokasi}
-              </p>
-            </div>
-          </div>
-        </article>
+        {/* Profile Section Discord-Style */}
+        <ProfileSection
+          nama_petani={farmer.nama_petani}
+          lokasi={farmer.lokasi}
+          foto_profil={farmer.foto_profil}
+          gambar_produk={farmer.gambar_produk}
+          gambar_banner={farmer.gambar_banner}
+          nama_produk={farmer.nama_produk}
+        />
 
+        {/* Stock Dashboard & Interactive Map */}
         <div className="grid gap-6 lg:grid-cols-2">
-          <section className="rounded-3xl border border-cyan-200 bg-white p-5 shadow-sm sm:p-6">
-            <h2 className="text-lg font-semibold text-slate-900">
-              Stock Dashboard
-            </h2>
-            <p className="mt-1 text-sm text-slate-600">
-              Komoditas: {farmer.nama_produk}
-            </p>
-
-            <div className="mt-5 rounded-2xl bg-cyan-50 p-4">
-              <div className="mb-3 flex items-center justify-between text-sm">
-                <span className="text-slate-600">Tersedia saat ini</span>
-                <span className="font-semibold text-slate-900">
-                  {(farmer.stok / 1000).toFixed(2)} Ton
-                </span>
-              </div>
-              <progress
-                value={stockProgress}
-                max={100}
-                className="stock-progress h-3 w-full overflow-hidden rounded-full border-0 bg-cyan-200"
-              />
-              <p className="mt-3 text-xs text-slate-500">
-                Kapasitas progres stok terhadap target distribusi mingguan.
-              </p>
-            </div>
-
-            <article className="mt-5 rounded-2xl border border-cyan-100 bg-cyan-50/70 p-4 text-sm leading-relaxed text-slate-700">
-              {farmer.deskripsi_panen}
-            </article>
-          </section>
+          {/* Stock Dashboard dengan Pop-up */}
+          <StockDashboard />
 
           <section className="rounded-3xl border border-cyan-200 bg-white p-5 shadow-sm sm:p-6">
             <div className="mb-3 flex items-center gap-2 text-slate-900">

@@ -225,9 +225,7 @@ export default function ModernLandingEnhancements() {
             kebingungan data.
           </p>
           <p className="mt-3 text-base leading-relaxed text-slate-700">
-            Implementasi awal difokuskan di Metro, Pringsewu, dan South Lampung
-            agar petani lokal lebih siap menembus kebutuhan pasar regional dan
-            nasional secara konsisten.
+            implementasi awal
           </p>
         </motion.div>
       </motion.section>

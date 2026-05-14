@@ -11,7 +11,9 @@ type ProductData = {
   gambar: string;
 };
 
-type ProductProps = {};
+type ProductProps = {
+  data: ProductData;
+};
 
 export default function ProductCard({ data }: ProductProps) {
   return (

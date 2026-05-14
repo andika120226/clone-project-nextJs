@@ -243,11 +243,11 @@ export default function HubungiKamiPage() {
   }, [form, isFarmer, isDistributor]);
 
   function nextStep() {
-    setStep((current) => Math.min(3, (current + 1) as StepId));
+    setStep((current) => Math.min(3, current + 1) as StepId);
   }
 
   function prevStep() {
-    setStep((current) => Math.max(1, (current - 1) as StepId));
+    setStep((current) => Math.max(1, current - 1) as StepId);
   }
 
   function handleSubmit() {

@@ -6,6 +6,7 @@ import {
   ShieldCheck,
   Wheat,
 } from "lucide-react";
+import SupplyTable from "@/components/info_terkini/SupplyTable";
 
 const statCards = [
   {
@@ -25,65 +26,6 @@ const statCards = [
     value: "847",
     helper: "Transaksi dan laporan harian",
     tone: "text-indigo-600",
-  },
-];
-
-const supplyRows = [
-  {
-    wilayah: "Kedaton",
-    komoditas: "Sayuran daun",
-    quantity: "245",
-    status: "Active",
-    update: "Hari ini",
-  },
-  {
-    wilayah: "Sukarame",
-    komoditas: "Cabai merah",
-    quantity: "178",
-    status: "Active",
-    update: "Hari ini",
-  },
-  {
-    wilayah: "Tanjung Karang Barat",
-    komoditas: "Bawang merah",
-    quantity: "189",
-    status: "Restocking",
-    update: "Hari ini",
-  },
-  {
-    wilayah: "Teluk Betung Utara",
-    komoditas: "Buah lokal",
-    quantity: "234",
-    status: "Active",
-    update: "Hari ini",
-  },
-  {
-    wilayah: "Teluk Betung Selatan",
-    komoditas: "Padi dan beras",
-    quantity: "201",
-    status: "Active",
-    update: "2 hari lalu",
-  },
-  {
-    wilayah: "Panjang",
-    komoditas: "Jagung hibrida",
-    quantity: "213",
-    status: "Active",
-    update: "Hari ini",
-  },
-  {
-    wilayah: "Rajabasa",
-    komoditas: "Tomat segar",
-    quantity: "167",
-    status: "Active",
-    update: "Kemarin",
-  },
-  {
-    wilayah: "Labuhan Ratu",
-    komoditas: "Kentang",
-    quantity: "154",
-    status: "Restocking",
-    update: "3 hari lalu",
   },
 ];
 
@@ -115,12 +57,6 @@ const newsFeed = [
     image: "/govertment4.jpg",
   },
 ];
-
-function badgeClass(status: string) {
-  return status === "Active"
-    ? "bg-emerald-100 text-emerald-700"
-    : "bg-amber-100 text-amber-700";
-}
 
 export default function InfoTerkiniPage() {
   return (
@@ -177,75 +113,8 @@ export default function InfoTerkiniPage() {
           ))}
         </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-          <div className="mb-6 flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-                Supply Table
-              </p>
-              <h2 className="mt-2 text-2xl font-bold text-slate-900">
-                Status Pasokan per Wilayah
-              </h2>
-            </div>
-            <div className="hidden items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-600 sm:flex">
-              <Wheat className="h-4 w-4 text-emerald-700" />
-              Update harian pemerintah daerah
-            </div>
-          </div>
-
-          <div className="overflow-hidden rounded-2xl border border-slate-200">
-            <table className="min-w-full border-collapse text-left text-sm">
-              <thead className="bg-slate-900 text-white">
-                <tr>
-                  <th className="px-4 py-4 font-semibold uppercase tracking-[0.16em]">
-                    Wilayah
-                  </th>
-                  <th className="px-4 py-4 font-semibold uppercase tracking-[0.16em]">
-                    Main Commodity
-                  </th>
-                  <th className="px-4 py-4 font-semibold uppercase tracking-[0.16em]">
-                    Quantity (Ton)
-                  </th>
-                  <th className="px-4 py-4 font-semibold uppercase tracking-[0.16em]">
-                    Status
-                  </th>
-                  <th className="px-4 py-4 font-semibold uppercase tracking-[0.16em]">
-                    Terakhir Update
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 bg-white">
-                {supplyRows.map((row) => (
-                  <tr
-                    key={row.wilayah}
-                    className="transition hover:bg-slate-50/80"
-                  >
-                    <td className="px-4 py-4 font-semibold text-slate-900">
-                      {row.wilayah}
-                    </td>
-                    <td className="px-4 py-4 text-slate-600">
-                      {row.komoditas}
-                    </td>
-                    <td className="px-4 py-4 text-slate-700">{row.quantity}</td>
-                    <td className="px-4 py-4">
-                      <span
-                        className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${badgeClass(row.status)}`}
-                      >
-                        {row.status === "Active" ? (
-                          <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
-                        ) : (
-                          <AlertTriangle className="mr-1.5 h-3.5 w-3.5" />
-                        )}
-                        {row.status === "Active" ? "Aktif" : "Restocking"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 text-slate-600">{row.update}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+        {/* Supply Table dengan Filter & Search */}
+        <SupplyTable />
 
         <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
           <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">

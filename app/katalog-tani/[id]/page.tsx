@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   CalendarDays,
+  ChevronLeft,
   Leaf,
   MapPin,
   MessageCircleMore,
@@ -50,6 +51,15 @@ export default async function DetailKatalogPage({ params }: DetailPageProps) {
   return (
     <main className="min-h-screen bg-zinc-950 px-4 py-8 text-zinc-100 md:px-8 md:py-10">
       <section className="mx-auto flex w-full max-w-7xl flex-col gap-6">
+        {/* Back Button */}
+        <Link
+          href="/katalog-tani"
+          className="inline-flex w-fit items-center gap-2 rounded-lg bg-zinc-900/50 px-4 py-2 text-sm font-medium text-zinc-300 transition hover:bg-zinc-800 hover:text-zinc-100"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Kembali ke Katalog
+        </Link>
+
         <article className="rounded-2xl border border-zinc-800 bg-gradient-to-br from-zinc-900 to-zinc-900/60 p-5 shadow-[0_16px_48px_rgba(0,0,0,0.45)] md:p-7">
           <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-4">
@@ -77,7 +87,7 @@ export default async function DetailKatalogPage({ params }: DetailPageProps) {
             </div>
 
             <Link
-              href="/Katalog_tani/id/chat"
+              href="/katalog-tani/id/chat"
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-500 px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-400"
             >
               <MessageCircleMore className="h-4 w-4" />

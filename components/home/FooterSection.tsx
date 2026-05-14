@@ -41,8 +41,8 @@ export default function FooterSection() {
         <div className="space-y-3">
           <h4 className="text-base font-semibold">InfoTani 🌾</h4>
           <p className="text-sm leading-relaxed text-zinc-600">
-            Ekosistem digital untuk mempertemukan petani Lampung dengan
-            distributor skala besar secara transparan.
+            Ekosistem digital untuk mempertemukan petani Di Seluruh Indonesia
+            dengan distributor skala besar secara transparan.
           </p>
         </div>
 
@@ -62,7 +62,7 @@ export default function FooterSection() {
         ))}
 
         <div className="space-y-3">
-          <h4 className="text-sm font-semibold text-zinc-900">Kontak</h4>//
+          <h4 className="text-sm font-semibold text-zinc-900">Kontak</h4>
           <ul className="space-y-3 text-sm text-zinc-600">
             <li className="flex items-start gap-2">
               <Mail size={16} className="mt-0.5" />

@@ -1,5 +1,8 @@
+"use client";
+
 import Image from "next/image";
 import { ScanLine, ShieldCheck } from "lucide-react";
+import React from "react";
 
 const detailItems = [
   {

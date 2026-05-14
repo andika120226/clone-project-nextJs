@@ -10,18 +10,18 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 const navLinks = [
   { label: "Home", href: "/" },
   { label: "Info Tani", href: "/info-tani" },
-  { label: "Info Terkini", href: "/real_time" },
+  { label: "Info Terkini", href: "/info-terkini" },
 ];
 
 const infoTaniLinks = [
   { label: "Komoditas", href: "/info-tani" },
-  { label: "Harga", href: "/real_time" },
+  { label: "Harga", href: "/info-terkini" },
   { label: "Mitra", href: "/hubungi-kami" },
 ];
 
 const infoTerkiniLinks = [
-  { label: "Artikel", href: "/real_time" },
-  { label: "Cuaca", href: "/real_time/monitoring" },
+  { label: "Artikel", href: "/info-terkini" },
+  { label: "Cuaca", href: "/info-terkini/monitoring" },
   { label: "Pasar", href: "/info-tani" },
 ];
 
@@ -207,7 +207,7 @@ export default function RootLayout({
                       +62 812-3456-7890
                     </a>
                   </li>
-                  <li>Bandar Lampung, Lampung</li>
+                  <li>Indonesia, sabang samapai marauke</li>
                 </ul>
               </section>
             </div>
