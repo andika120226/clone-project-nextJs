@@ -35,6 +35,7 @@ export type AdminProduct = {
   stockKg: number;
   stockStatus: ProductStockStatus;
   imageUrl: string;
+  pricePerKg?: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -89,6 +90,16 @@ export type AdminOrder = {
   logisticsAdditionalCost: number;
   totalPay: number;
   truckLocationLabel: string;
+  paymentStatus?: "PENDING" | "SUCCESS" | "FAILED";
+  messages?: OrderMessage[];
+};
+
+export type OrderMessage = {
+  id: string;
+  sender: "CUSTOMER" | "ADMIN" | "SYSTEM";
+  message: string;
+  status: "UNREAD" | "READ";
+  createdAt: string;
 };
 
 export type FarmerProfile = {
@@ -128,11 +139,31 @@ const CATALOG_COUNT = 15;
 const DEFAULT_IMAGE = "/image/gambar13.jpg";
 
 const FLEET_OPTIONS = [
-  { vehicleType: "Pick-up PT InfoTani", capacityTon: 1, additionalCost: 150000 },
-  { vehicleType: "Colt Diesel PT InfoTani", capacityTon: 4, additionalCost: 450000 },
-  { vehicleType: "Fuso PT InfoTani", capacityTon: 8, additionalCost: 980000 },
-  { vehicleType: "Tronton PT InfoTani", capacityTon: 20, additionalCost: 1800000 },
+  { vehicleType: "Pick-up Terbuka", capacityTon: 0.5, additionalCost: 120000 },
+  { vehicleType: "Pick-up Cargo", capacityTon: 1, additionalCost: 180000 },
+  { vehicleType: "Truk Kecil", capacityTon: 2, additionalCost: 320000 },
+  { vehicleType: "Truk Sedang", capacityTon: 4, additionalCost: 520000 },
+  { vehicleType: "Fuso Cargo", capacityTon: 8, additionalCost: 980000 },
 ] as const;
+
+function getDefaultPriceByProductName(productName: string) {
+  const lower = productName.toLowerCase();
+
+  if (lower.includes("kopi")) {
+    return 62000;
+  }
+  if (lower.includes("cabai") || lower.includes("cabe")) {
+    return 36000;
+  }
+  if (lower.includes("padi")) {
+    return 13000;
+  }
+  if (lower.includes("jagung")) {
+    return 9800;
+  }
+
+  return 15000;
+}
 
 function canUseStorage() {
   return typeof window !== "undefined";
@@ -210,6 +241,10 @@ function hashCode(text: string) {
 
 function createTenantId(email: string) {
   return `tenant-${Math.abs(hashCode(email.trim().toLowerCase()))}`;
+}
+
+function createMessageId() {
+  return `msg-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 }
 
 function getAccounts() {
@@ -410,6 +445,7 @@ export function saveTenantProduct(tenantId: string, payload: Omit<AdminProduct, 
     stockKg: payload.stockKg,
     stockStatus: payload.stockStatus,
     imageUrl: payload.imageUrl || DEFAULT_IMAGE,
+    pricePerKg: payload.pricePerKg ?? getDefaultPriceByProductName(payload.name),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -435,6 +471,8 @@ export function saveTenantOrder(tenantId: string, payload: Omit<AdminOrder, "id"
 
   const created: AdminOrder = {
     ...payload,
+    paymentStatus: payload.paymentStatus ?? "SUCCESS",
+    messages: payload.messages ?? [],
     id: `ord-${Date.now()}`,
     tenantId,
     createdAt: new Date().toISOString(),
@@ -456,6 +494,16 @@ export function updateTenantOrderStatus(tenantId: string, orderId: string, nextS
   }
 
   order.deliveryStatus = nextStatus;
+  order.messages = [
+    {
+      id: createMessageId(),
+      sender: "SYSTEM",
+      status: "UNREAD",
+      createdAt: new Date().toISOString(),
+      message: `Status pesanan diubah menjadi ${nextStatus}.`,
+    },
+    ...(order.messages ?? []),
+  ];
   order.truckLocationLabel =
     nextStatus === "Berangkat"
       ? "Armada menuju lokasi customer"
@@ -542,37 +590,30 @@ export function getSharedShipmentTracking() {
 
 export function analyzeLogisticsLoad(totalWeightTon: number): LogisticsAnalysisResult {
   const safeWeight = Math.max(0.1, Number(totalWeightTon) || 0);
-  let remaining = safeWeight;
-  const recommendation: LogisticsVehiclePlan[] = [];
+  const targetWeightKg = safeWeight * 1000;
+  const fleetCombinations = generateFleetCombinations(targetWeightKg, 3);
+  const bestPlan = fleetCombinations[0] ?? [FLEET_OPTIONS[FLEET_OPTIONS.length - 1]];
 
-  for (const vehicle of [...FLEET_OPTIONS].reverse()) {
-    if (remaining <= 0) {
-      break;
+  const grouped = bestPlan.reduce<Map<string, LogisticsVehiclePlan>>((acc, vehicle) => {
+    const existing = acc.get(vehicle.vehicleType);
+    if (existing) {
+      existing.count += 1;
+      existing.subtotalCost += vehicle.additionalCost;
+      return acc;
     }
 
-    const count = Math.floor(remaining / vehicle.capacityTon);
-    if (count <= 0) {
-      continue;
-    }
-
-    recommendation.push({
-      ...vehicle,
-      count,
-      subtotalCost: count * vehicle.additionalCost,
+    acc.set(vehicle.vehicleType, {
+      vehicleType: vehicle.vehicleType,
+      capacityTon: vehicle.capacityTon,
+      additionalCost: vehicle.additionalCost,
+      count: 1,
+      subtotalCost: vehicle.additionalCost,
     });
-    remaining -= count * vehicle.capacityTon;
-  }
 
-  if (remaining > 0) {
-    const smallest = FLEET_OPTIONS[0];
-    const count = Math.ceil(remaining / smallest.capacityTon);
-    recommendation.push({
-      ...smallest,
-      count,
-      subtotalCost: count * smallest.additionalCost,
-    });
-  }
+    return acc;
+  }, new Map());
 
+  const recommendation = Array.from(grouped.values()).sort((a, b) => b.capacityTon - a.capacityTon);
   const totalAdditionalCost = recommendation.reduce((sum, item) => sum + item.subtotalCost, 0);
   const estimatedVehicleCount = recommendation.reduce((sum, item) => sum + item.count, 0);
 
@@ -582,8 +623,94 @@ export function analyzeLogisticsLoad(totalWeightTon: number): LogisticsAnalysisR
     totalAdditionalCost,
     recommendation,
     notes:
-      "Estimasi menggunakan kombinasi armada PT InfoTani berbasis kapasitas muatan agar biaya tambahan efisien.",
+      "Rekomendasi armada dipilih dari kombinasi paling efisien dengan batas maksimal 3 kendaraan.",
   };
+}
+
+function generateFleetCombinations(targetWeightKg: number, maxVehicles: number) {
+  const all: Array<(typeof FLEET_OPTIONS)[number][]> = [];
+
+  function walk(current: (typeof FLEET_OPTIONS)[number][], depth: number) {
+    const currentCapacity = current.reduce((sum, vehicle) => sum + vehicle.capacityTon * 1000, 0);
+
+    if (currentCapacity >= targetWeightKg || depth === maxVehicles) {
+      if (currentCapacity >= targetWeightKg && current.length > 0) {
+        all.push([...current]);
+      }
+      return;
+    }
+
+    for (const vehicle of FLEET_OPTIONS) {
+      current.push(vehicle);
+      walk(current, depth + 1);
+      current.pop();
+    }
+  }
+
+  walk([], 0);
+
+  return all
+    .map((items) => ({
+      items,
+      cost: items.reduce((sum, item) => sum + item.additionalCost, 0),
+      capacity: items.reduce((sum, item) => sum + item.capacityTon * 1000, 0),
+    }))
+    .sort((a, b) => a.cost - b.cost || a.capacity - b.capacity)
+    .map((item) => item.items);
+}
+
+export function getFleetOptions() {
+  return [...FLEET_OPTIONS];
+}
+
+export function getPriceByProductName(productName: string) {
+  return getDefaultPriceByProductName(productName);
+}
+
+export function calculateDiscountedLogisticsCost(totalCost: number, vehicleCount: number) {
+  const discountPercentage = vehicleCount > 0 && vehicleCount <= 3 ? 35 : 0;
+  const discountAmount = Math.round((totalCost * discountPercentage) / 100);
+
+  return {
+    discountPercentage,
+    discountAmount,
+    totalAfterDiscount: totalCost - discountAmount,
+  };
+}
+
+export function buildOrderPaymentMessage(params: {
+  customerName: string;
+  productName: string;
+  billCode: string;
+  totalPay: number;
+  paymentMethod: string;
+}) {
+  return {
+    id: createMessageId(),
+    sender: "SYSTEM" as const,
+    status: "UNREAD" as const,
+    createdAt: new Date().toISOString(),
+    message: `Pembayaran sukses dari ${params.customerName} untuk ${params.productName}. Bill ${params.billCode}. Total ${toRupiah(params.totalPay)} via ${params.paymentMethod}.`,
+  };
+}
+
+export function appendTenantOrderMessage(tenantId: string, orderId: string, message: OrderMessage) {
+  const key = toTenantKey(tenantId, "orders");
+  const orders = getTenantOrders(tenantId);
+  const order = orders.find((item) => item.id === orderId);
+
+  if (!order) {
+    return null;
+  }
+
+  order.messages = order.messages ? [message, ...order.messages] : [message];
+  order.paymentStatus = order.paymentStatus ?? "SUCCESS";
+  writeJson(key, orders);
+  return order;
+}
+
+export function summarizeOrderMessages(tenantId: string) {
+  return getTenantOrders(tenantId).flatMap((order) => order.messages ?? []);
 }
 
 export function createBillCode() {
@@ -645,7 +772,7 @@ export function isImageMimeAllowed(type: string) {
   return ["image/jpeg", "image/png", "image/webp"].includes(type);
 }
 
-export function isImageFileExtensionAllowed(fileName: string) {
-  const lower = fileName.toLowerCase();
-  return lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png") || lower.endsWith(".webp");
+export function isImageFileExtensionAllowed(ext: string) {
+  const lower = ext.toLowerCase().replace(/^\./, ""); // Remove leading dot if present
+  return lower === "jpg" || lower === "jpeg" || lower === "png" || lower === "webp";
 }

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useSyncExternalStore } from "react";
 import { MapPin, PackageOpen, Sparkles } from "lucide-react";
 import {
   getAdminAccountByCatalogId,
@@ -38,8 +39,17 @@ function getShortDescription(text: string) {
   return `${cleaned.slice(0, 130)}...`;
 }
 
+function useIsHydrated() {
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+}
+
 export default function InfoTaniCatalogPage() {
   const catalogs = sampleCatalogs();
+  const isHydrated = useIsHydrated();
 
   return (
     <main className="min-h-screen bg-cyan-100/55 pb-14 pt-4">
@@ -59,7 +69,7 @@ export default function InfoTaniCatalogPage() {
 
         <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {catalogs.map((slot) => {
-            const account = getAdminAccountByCatalogId(slot.id);
+            const account = isHydrated ? getAdminAccountByCatalogId(slot.id) : null;
             const profile = account ? getFarmerProfile(account.tenantId) : null;
             const products = account ? getTenantProducts(account.tenantId) : [];
             const primaryProduct = products[0] ?? null;

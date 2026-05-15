@@ -143,13 +143,40 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Support single or multiple logistics vehicles. If provided as array, enforce max 3 vehicles.
+    const logisticsVehicleIds = Array.isArray(body?.logisticsVehicleIds)
+      ? body.logisticsVehicleIds.map((v: unknown) => String(v))
+      : logisticsVehicleId
+      ? [logisticsVehicleId]
+      : [];
+
     let logisticsCost = new Prisma.Decimal(0);
-    if (logisticsVehicleId) {
-      const logistics = await prisma.logisticsVehicle.findUnique({ where: { id: logisticsVehicleId } });
-      if (!logistics) {
-        return NextResponse.json({ error: "Data kendaraan logistik tidak ditemukan." }, { status: 404 });
+    let discountPercentage = 0;
+    const deliveryMethod: 'LOGISTICS' | 'SELF_PICKUP' = body?.deliveryMethod === 'SELF_PICKUP' ? 'SELF_PICKUP' : 'LOGISTICS';
+    let chosenLogisticsVehicleId: string | null = logisticsVehicleId || null;
+
+    if (deliveryMethod === 'SELF_PICKUP') {
+      // Self-pickup => no logistics cost
+      logisticsCost = new Prisma.Decimal(0);
+    } else if (logisticsVehicleIds.length > 0) {
+      if (logisticsVehicleIds.length > 3) {
+        return NextResponse.json({ error: 'Maksimum 3 kendaraan logistik diperbolehkan.' }, { status: 400 });
       }
-      logisticsCost = logistics.price;
+
+      const logisticsList = await prisma.logisticsVehicle.findMany({ where: { id: { in: logisticsVehicleIds } } });
+      if (logisticsList.length !== logisticsVehicleIds.length) {
+        return NextResponse.json({ error: 'Salah satu kendaraan logistik tidak ditemukan.' }, { status: 404 });
+      }
+
+      // Sum prices
+      logisticsCost = logisticsList.reduce((acc, v) => acc.add(v.price), new Prisma.Decimal(0));
+      // Apply platform discount rule: 35% off when using InfoTani logistics
+      discountPercentage = 35;
+      const discounted = logisticsCost.mul(new Prisma.Decimal(0.65));
+      logisticsCost = discounted;
+
+      // choose first vehicle id as representative (for backward compatibility)
+      chosenLogisticsVehicleId = logisticsVehicleIds[0] || null;
     }
 
     const farmerPrimaryBank = await prisma.bankAccount.findFirst({
@@ -170,10 +197,12 @@ export async function POST(request: NextRequest) {
           trackingId: createTrackingCode(),
           customerId: auth.user!.id,
           farmerId,
-          logisticsVehicleId,
+          logisticsVehicleId: chosenLogisticsVehicleId,
           customerBankAccountId,
           farmerBankAccountId: farmerPrimaryBank?.id || null,
           addressId,
+          deliveryMethod: deliveryMethod,
+          discountPercentage,
           subtotal,
           logisticsCost,
           total,

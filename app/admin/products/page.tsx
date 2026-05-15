@@ -7,11 +7,10 @@ import {
   AdminProduct,
   deleteTenantProduct,
   getTenantProducts,
-  isImageFileExtensionAllowed,
-  isImageMimeAllowed,
   saveTenantProduct,
 } from "@/lib/admin-store";
 import { useAdminTenant } from "@/components/admin/useAdminTenant";
+import ImageUploadModal from "@/components/ImageUploadModal";
 
 type ProductForm = {
   id: string;
@@ -19,6 +18,7 @@ type ProductForm = {
   stockKg: number;
   stockStatus: "Ready" | "Menipis";
   imageUrl: string;
+  pricePerKg: number;
 };
 
 const initialForm: ProductForm = {
@@ -27,16 +27,17 @@ const initialForm: ProductForm = {
   stockKg: 0,
   stockStatus: "Ready",
   imageUrl: "",
+  pricePerKg: 15000,
 };
 
 export default function AdminProductsPage() {
   const router = useRouter();
   const { ready, session } = useAdminTenant();
 
-
   const [form, setForm] = useState<ProductForm>(initialForm);
   const [error, setError] = useState("");
   const [items, setItems] = useState<AdminProduct[]>([]);
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   // eslint-disable react-hooks/rules-of-hooks
   useEffect(() => {
     if (!ready) {
@@ -55,35 +56,8 @@ export default function AdminProductsPage() {
     return items.filter((item) => item.stockStatus === "Menipis").length;
   }, [items]);
 
-  function readAsDataUrl(file: File, callback: (value: string) => void) {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      callback(event.target?.result as string);
-    };
-    reader.readAsDataURL(file);
-  }
-
-  function handleUpload(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
-
-    const mime = file.type;
-    const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
-
-    if (!isImageMimeAllowed(mime)) {
-      setError(`MIME type ${mime} tidak diizinkan. Gunakan JPG, PNG, atau WebP.`);
-      return;
-    }
-
-    if (!isImageFileExtensionAllowed(ext)) {
-      setError(`Ekstensi .${ext} tidak diizinkan. Gunakan .jpg, .png, atau .webp`);
-      return;
-    }
-
-    setError("");
-    readAsDataUrl(file, (value) => setForm((prev) => ({ ...prev, imageUrl: value })));
+  function handleImageUpload(imageUrl: string) {
+    setForm((prev) => ({ ...prev, imageUrl }));
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -110,6 +84,7 @@ export default function AdminProductsPage() {
       stockKg: Number(form.stockKg),
       stockStatus: form.stockStatus,
       imageUrl: form.imageUrl,
+      pricePerKg: Number(form.pricePerKg),
     });
 
     setItems(getTenantProducts(session.tenantId));
@@ -123,6 +98,7 @@ export default function AdminProductsPage() {
       stockKg: item.stockKg,
       stockStatus: item.stockStatus,
       imageUrl: item.imageUrl,
+      pricePerKg: item.pricePerKg ?? 15000,
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -196,6 +172,18 @@ export default function AdminProductsPage() {
             </label>
 
             <label className="block">
+              <span className="text-sm font-semibold text-slate-700">Harga per Kg</span>
+              <input
+                type="number"
+                value={form.pricePerKg}
+                onChange={(e) => setForm((prev) => ({ ...prev, pricePerKg: Number(e.target.value) }))}
+                min="0"
+                className="mt-2 w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-2.5 text-slate-900 placeholder-slate-400 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/20"
+                placeholder="15000"
+              />
+            </label>
+
+            <label className="block">
               <span className="text-sm font-semibold text-slate-700">Status Stok</span>
               <select
                 value={form.stockStatus}
@@ -210,10 +198,13 @@ export default function AdminProductsPage() {
 
           <div>
             <span className="text-sm font-semibold text-slate-700">Foto Produk</span>
-            <label className="mt-2 block">
-              <span className="text-xs text-slate-600">Upload Foto (JPG, PNG, WebP)</span>
-              <input type="file" accept=".jpg,.jpeg,.png,.webp" onChange={handleUpload} className="mt-2 w-full" />
-            </label>
+            <button
+              type="button"
+              onClick={() => setIsImageModalOpen(true)}
+              className="mt-2 inline-block rounded-lg bg-cyan-50 px-4 py-2 text-sm font-medium text-cyan-700 hover:bg-cyan-100 transition"
+            >
+              {form.imageUrl ? "Ubah Foto" : "Pilih Foto"}
+            </button>
 
             {form.imageUrl && (
               <div className="mt-3 overflow-hidden rounded-xl border border-cyan-100 bg-white">
@@ -266,6 +257,9 @@ export default function AdminProductsPage() {
                   <div>
                     <h3 className="font-semibold text-slate-900">{item.name}</h3>
                     <p className="text-sm text-slate-600">{item.stockKg.toLocaleString("id-ID")} kg</p>
+                        <p className="mt-1 text-sm font-semibold text-cyan-700">
+                          Rp {Number(item.pricePerKg ?? 15000).toLocaleString("id-ID")} / kg
+                        </p>
                   </div>
                   <span
                     className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
@@ -296,6 +290,14 @@ export default function AdminProductsPage() {
           </div>
         )}
       </div>
+
+      <ImageUploadModal
+        isOpen={isImageModalOpen}
+        title="Pilih Foto Produk"
+        initialImage={form.imageUrl}
+        onClose={() => setIsImageModalOpen(false)}
+        onConfirm={handleImageUpload}
+      />
     </main>
   );
 }

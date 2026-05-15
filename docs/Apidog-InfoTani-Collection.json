@@ -1,0 +1,822 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "InfoTani Marketplace API",
+    "version": "1.0.0",
+    "description": "Complete API collection for InfoTani e-commerce platform with farmer-customer marketplace",
+    "contact": {
+      "name": "InfoTani Support",
+      "email": "nuhdika172@gmail.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Local development server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "user_123abc" },
+          "name": { "type": "string", "example": "Budi Santoso" },
+          "email": { "type": "string", "example": "budi@example.com" },
+          "role": { "type": "string", "enum": ["CUSTOMER", "FARMER"], "example": "CUSTOMER" },
+          "phone": { "type": "string", "example": "+62812345678" },
+          "gender": { "type": "string", "enum": ["Laki-laki", "Perempuan"], "example": "Laki-laki" },
+          "birthDate": { "type": "string", "format": "date", "example": "1990-01-15" },
+          "image": { "type": "string", "example": "https://example.com/image.jpg" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Product": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "farmerId": { "type": "string" },
+          "name": { "type": "string", "example": "Padi Premium" },
+          "description": { "type": "string", "example": "Padi berkualitas tinggi dari Jawa Barat" },
+          "pricePerKg": { "type": "number", "example": 5000 },
+          "stockKg": { "type": "integer", "example": 1000 },
+          "imageUrl": { "type": "string", "example": "https://example.com/padi.jpg" },
+          "isActive": { "type": "boolean", "example": true },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Order": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "trackingId": { "type": "string", "example": "TRK-1736987654321-4521" },
+          "customerId": { "type": "string" },
+          "farmerId": { "type": "string" },
+          "logisticsVehicleId": { "type": "string" },
+          "status": { "type": "string", "enum": ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"], "example": "PENDING" },
+          "subtotal": { "type": "number", "example": 50000 },
+          "logisticsCost": { "type": "number", "example": 10000 },
+          "total": { "type": "number", "example": 60000 },
+          "currentLat": { "type": "number", "example": -6.2088 },
+          "currentLng": { "type": "number", "example": 106.8456 },
+          "estimatedArrival": { "type": "string", "format": "date-time" },
+          "notes": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/auth/signup": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "User Registration (Step 1: Create Account)",
+        "description": "Create new user account as CUSTOMER or FARMER",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "email", "password", "role"],
+                "properties": {
+                  "name": { "type": "string", "example": "Budi Santoso" },
+                  "email": { "type": "string", "example": "budi@example.com" },
+                  "password": { "type": "string", "format": "password", "minLength": 8, "example": "Password123" },
+                  "role": { "type": "string", "enum": ["CUSTOMER", "FARMER"], "example": "CUSTOMER" },
+                  "phone": { "type": "string", "example": "+62812345678" },
+                  "gender": { "type": "string", "enum": ["Laki-laki", "Perempuan"], "example": "Laki-laki" },
+                  "birthDate": { "type": "string", "format": "date", "example": "1990-01-15" },
+                  "image": { "type": "string", "example": "https://example.com/image.jpg" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Account created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean", "example": true },
+                    "token": { "type": "string", "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." },
+                    "user": { "$ref": "#/components/schemas/User" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Validation error - invalid fields" },
+          "409": { "description": "Email already registered" }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "User Login (Step 2: Get Access Token)",
+        "description": "Authenticate user and receive JWT token",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "example": "budi@example.com" },
+                  "password": { "type": "string", "format": "password", "example": "Password123" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean", "example": true },
+                    "token": { "type": "string", "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." },
+                    "user": { "$ref": "#/components/schemas/User" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Missing email or password" },
+          "401": { "description": "Invalid email or password" }
+        }
+      }
+    },
+    "/api/profile": {
+      "get": {
+        "tags": ["Profile"],
+        "summary": "Get Current User Profile",
+        "description": "Retrieve authenticated user's profile information",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "User profile retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean", "example": true },
+                    "data": { "$ref": "#/components/schemas/User" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized - missing or invalid token" }
+        }
+      },
+      "patch": {
+        "tags": ["Profile"],
+        "summary": "Update User Profile",
+        "description": "Update profile information (name, phone, gender, birthDate, image)",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string", "example": "Budi Santoso Updated" },
+                  "phone": { "type": "string", "example": "+62812345678" },
+                  "gender": { "type": "string", "enum": ["Laki-laki", "Perempuan"] },
+                  "birthDate": { "type": "string", "format": "date" },
+                  "image": { "type": "string", "example": "https://example.com/new-image.jpg" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean", "example": true },
+                    "data": { "$ref": "#/components/schemas/User" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/api/profile/addresses": {
+      "get": {
+        "tags": ["Profile - Addresses"],
+        "summary": "List All Delivery Addresses (CUSTOMER)",
+        "description": "Get list of customer's saved addresses, sorted by main address first",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Address list retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean" },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string" },
+                          "userId": { "type": "string" },
+                          "label": { "type": "string", "example": "Rumah" },
+                          "recipientName": { "type": "string", "example": "Budi Santoso" },
+                          "phoneNumber": { "type": "string", "example": "+62812345678" },
+                          "fullAddress": { "type": "string", "example": "Jl. Merdeka No. 123" },
+                          "city": { "type": "string", "example": "Jakarta" },
+                          "province": { "type": "string", "example": "DKI Jakarta" },
+                          "isMain": { "type": "boolean", "example": true },
+                          "createdAt": { "type": "string", "format": "date-time" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" }
+        }
+      },
+      "post": {
+        "tags": ["Profile - Addresses"],
+        "summary": "Create New Delivery Address",
+        "description": "Add a new shipping address for the customer",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["label", "recipientName", "phoneNumber", "fullAddress", "city", "province"],
+                "properties": {
+                  "label": { "type": "string", "example": "Rumah" },
+                  "recipientName": { "type": "string", "example": "Budi Santoso" },
+                  "phoneNumber": { "type": "string", "example": "+62812345678" },
+                  "fullAddress": { "type": "string", "example": "Jl. Merdeka No. 123" },
+                  "city": { "type": "string", "example": "Jakarta" },
+                  "province": { "type": "string", "example": "DKI Jakarta" },
+                  "isMain": { "type": "boolean", "example": true, "description": "If true, sets as main address and unsets others" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Address created successfully" },
+          "400": { "description": "Missing required fields" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/api/profile/addresses/{id}": {
+      "patch": {
+        "tags": ["Profile - Addresses"],
+        "summary": "Update Delivery Address",
+        "description": "Update address details",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "label": { "type": "string" },
+                  "recipientName": { "type": "string" },
+                  "phoneNumber": { "type": "string" },
+                  "fullAddress": { "type": "string" },
+                  "city": { "type": "string" },
+                  "province": { "type": "string" },
+                  "isMain": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Address updated" },
+          "404": { "description": "Address not found" }
+        }
+      },
+      "delete": {
+        "tags": ["Profile - Addresses"],
+        "summary": "Delete Delivery Address",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Address deleted" },
+          "404": { "description": "Address not found" }
+        }
+      }
+    },
+    "/api/profile/banks": {
+      "get": {
+        "tags": ["Profile - Banks"],
+        "summary": "List Bank Accounts",
+        "description": "Get all saved bank accounts for CUSTOMER (payment) or FARMER (payout)",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Bank accounts retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean" },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string" },
+                          "userId": { "type": "string" },
+                          "bankName": { "type": "string", "example": "BCA" },
+                          "accountNumber": { "type": "string", "example": "1234567890" },
+                          "accountHolder": { "type": "string", "example": "Budi Santoso" },
+                          "createdAt": { "type": "string", "format": "date-time" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Profile - Banks"],
+        "summary": "Add Bank Account",
+        "description": "Save new bank account for payments or payouts",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["bankName", "accountNumber", "accountHolder"],
+                "properties": {
+                  "bankName": { "type": "string", "example": "BCA" },
+                  "accountNumber": { "type": "string", "example": "1234567890" },
+                  "accountHolder": { "type": "string", "example": "Budi Santoso" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Bank account created" },
+          "400": { "description": "Missing required fields" }
+        }
+      }
+    },
+    "/api/products": {
+      "get": {
+        "tags": ["Products - Catalog"],
+        "summary": "Browse All Products (Public)",
+        "description": "Get list of all active products with optional filters. No authentication required.",
+        "parameters": [
+          { "name": "farmerId", "in": "query", "schema": { "type": "string" }, "description": "Filter by specific farmer" },
+          { "name": "search", "in": "query", "schema": { "type": "string" }, "description": "Search by product name or description" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean" },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string" },
+                          "farmerId": { "type": "string" },
+                          "name": { "type": "string", "example": "Padi Premium" },
+                          "description": { "type": "string" },
+                          "pricePerKg": { "type": "number", "example": 5000 },
+                          "stockKg": { "type": "integer", "example": 1000 },
+                          "imageUrl": { "type": "string" },
+                          "isActive": { "type": "boolean" },
+                          "farmer": {
+                            "type": "object",
+                            "properties": {
+                              "id": { "type": "string" },
+                              "name": { "type": "string", "example": "Koperasi Tani Jaya" },
+                              "image": { "type": "string" },
+                              "gender": { "type": "string" }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Products - Farmer Management"],
+        "summary": "Create New Product (FARMER ONLY)",
+        "description": "Add new product to farmer's catalog",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "pricePerKg", "stockKg", "imageUrl"],
+                "properties": {
+                  "name": { "type": "string", "example": "Padi Premium Grade A" },
+                  "description": { "type": "string", "example": "Padi berkualitas tinggi dari ladang organik Jawa Barat" },
+                  "pricePerKg": { "type": "number", "example": 5500, "description": "Price per kilogram" },
+                  "stockKg": { "type": "integer", "example": 1000, "description": "Initial stock in kilograms" },
+                  "imageUrl": { "type": "string", "example": "https://example.com/padi.jpg" },
+                  "isActive": { "type": "boolean", "example": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Product created successfully" },
+          "400": { "description": "Validation error" },
+          "401": { "description": "Unauthorized or not FARMER role" }
+        }
+      }
+    },
+    "/api/farmer/products/{id}/stock": {
+      "patch": {
+        "tags": ["Products - Farmer Management"],
+        "summary": "Update Product Stock (FARMER ONLY)",
+        "description": "Update stock quantity for farmer's product",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["stockKg"],
+                "properties": {
+                  "stockKg": { "type": "integer", "example": 1500, "description": "New stock quantity in kg" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Stock updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean" },
+                    "data": { "$ref": "#/components/schemas/Product" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" },
+          "404": { "description": "Product not found" }
+        }
+      }
+    },
+    "/api/logistics": {
+      "get": {
+        "tags": ["Logistics"],
+        "summary": "List Available Vehicles (Public)",
+        "description": "Get all active logistics vehicles available for delivery",
+        "responses": {
+          "200": {
+            "description": "Vehicle list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean" },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string" },
+                          "name": { "type": "string", "example": "Truk Sedang" },
+                          "vehicleType": { "type": "string", "example": "Truck Medium" },
+                          "capacityTon": { "type": "number", "example": 4 },
+                          "price": { "type": "number", "example": 450000 },
+                          "isActive": { "type": "boolean" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Logistics"],
+        "summary": "Create Logistics Vehicle (FARMER ONLY)",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "vehicleType", "capacityTon", "price"],
+                "properties": {
+                  "name": { "type": "string", "example": "Truk Sedang" },
+                  "vehicleType": { "type": "string", "example": "Truck Medium" },
+                  "capacityTon": { "type": "number", "example": 4 },
+                  "price": { "type": "number", "example": 450000 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Vehicle created" }
+        }
+      }
+    },
+    "/api/orders": {
+      "get": {
+        "tags": ["Orders"],
+        "summary": "List Orders (Filtered by Role)",
+        "description": "CUSTOMER sees own orders (customerId), FARMER sees own sales (farmerId)",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Order list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean" },
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Order" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" }
+        }
+      },
+      "post": {
+        "tags": ["Orders"],
+        "summary": "Create New Order (CUSTOMER ONLY)",
+        "description": "Create multi-product order with address, bank, and logistics selection. Supports single or multiple products from same farmer.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["items", "addressId", "customerBankAccountId"],
+                "properties": {
+                  "items": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object",
+                      "required": ["productId", "quantityKg"],
+                      "properties": {
+                        "productId": { "type": "string" },
+                        "quantityKg": { "type": "integer", "example": 50, "description": "Quantity in kilograms" }
+                      }
+                    },
+                    "example": [
+                      { "productId": "prod_123", "quantityKg": 50 },
+                      { "productId": "prod_456", "quantityKg": 30 }
+                    ]
+                  },
+                  "addressId": { "type": "string", "description": "Delivery address ID" },
+                  "customerBankAccountId": { "type": "string", "description": "Payment source bank account" },
+                  "logisticsVehicleId": { "type": "string", "description": "Logistics vehicle ID (optional, can be null for self-pickup)" },
+                  "estimatedArrival": { "type": "string", "format": "date-time" },
+                  "notes": { "type": "string", "example": "Harap hati-hati saat pengiriman" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Order created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "order": { "$ref": "#/components/schemas/Order" },
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": { "type": "string" },
+                              "orderId": { "type": "string" },
+                              "productId": { "type": "string" },
+                              "quantityKg": { "type": "integer" },
+                              "unitPrice": { "type": "number" },
+                              "subtotal": { "type": "number" }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Validation error - invalid items, address, or vehicle" },
+          "404": { "description": "Product, address, bank account, or vehicle not found" },
+          "409": { "description": "Insufficient stock" }
+        }
+      }
+    },
+    "/api/tracking/{trackingId}": {
+      "get": {
+        "tags": ["Tracking & Delivery"],
+        "summary": "Get Order Details with GPS Tracking (Public)",
+        "description": "Retrieve full order details and GPS tracking points. CUSTOMER and FARMER can view their own orders.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "trackingId", "in": "path", "required": true, "schema": { "type": "string" }, "example": "TRK-1736987654321-4521" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Order details with tracking history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string" },
+                        "trackingId": { "type": "string" },
+                        "status": { "type": "string", "enum": ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"] },
+                        "subtotal": { "type": "number" },
+                        "logisticsCost": { "type": "number" },
+                        "total": { "type": "number" },
+                        "currentLat": { "type": "number", "example": -6.2088 },
+                        "currentLng": { "type": "number", "example": 106.8456 },
+                        "estimatedArrival": { "type": "string", "format": "date-time" },
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "productId": { "type": "string" },
+                              "productName": { "type": "string" },
+                              "quantityKg": { "type": "integer" },
+                              "unitPrice": { "type": "number" },
+                              "subtotal": { "type": "number" }
+                            }
+                          }
+                        },
+                        "trackingPoints": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "latitude": { "type": "number", "example": -6.2088 },
+                              "longitude": { "type": "number", "example": 106.8456 },
+                              "note": { "type": "string", "example": "Barang diterima dari pabrik" },
+                              "recordedAt": { "type": "string", "format": "date-time" }
+                            }
+                          },
+                          "description": "GPS tracking history, sorted by most recent first"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized - missing token" },
+          "403": { "description": "Forbidden - not order owner" },
+          "404": { "description": "Order not found" }
+        }
+      },
+      "patch": {
+        "tags": ["Tracking & Delivery"],
+        "summary": "Update Order Status & GPS Location (FARMER ONLY)",
+        "description": "Update order processing status, current location, and estimated arrival. Farmer can track delivery progress.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "trackingId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"],
+                    "example": "PROCESSING"
+                  },
+                  "currentLat": { "type": "number", "example": -6.2088 },
+                  "currentLng": { "type": "number", "example": 106.8456 },
+                  "estimatedArrival": { "type": "string", "format": "date-time" },
+                  "note": { "type": "string", "example": "Sedang dalam perjalanan ke Jakarta" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Order status updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean" },
+                    "data": { "$ref": "#/components/schemas/Order" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid status or coordinates" },
+          "401": { "description": "Unauthorized" },
+          "403": { "description": "Forbidden - not farmer of this order" },
+          "404": { "description": "Order not found" }
+        }
+      }
+    }
+  }
+}

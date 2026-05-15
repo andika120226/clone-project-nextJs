@@ -130,25 +130,39 @@ export function formatCurrency(value: number) {
 
 export const logisticsOptions: LogisticsOption[] = [
   {
-    id: "pickup",
-    label: "Pick-up",
-    capacityKg: 800,
-    rentalFee: 150000,
-    description: "Cocok untuk kiriman kecil dan rute dalam kota.",
+    id: "pickup-terbuka",
+    label: "Pick-up Terbuka",
+    capacityKg: 500,
+    rentalFee: 120000,
+    description: "Cocok untuk kiriman kecil dan akses jalan sempit.",
   },
   {
-    id: "colt-diesel",
-    label: "Colt Diesel",
-    capacityKg: 3500,
-    rentalFee: 450000,
-    description: "Pas untuk distribusi antarkecamatan dengan volume menengah.",
+    id: "pickup-cargo",
+    label: "Pick-up Cargo",
+    capacityKg: 1000,
+    rentalFee: 180000,
+    description: "Pas untuk distribusi jarak pendek dan muatan ringan.",
   },
   {
-    id: "fuso",
-    label: "Fuso",
-    capacityKg: 12000,
+    id: "truk-kecil",
+    label: "Truk Kecil",
+    capacityKg: 2000,
+    rentalFee: 320000,
+    description: "Ideal untuk muatan menengah antar-kecamatan.",
+  },
+  {
+    id: "truk-sedang",
+    label: "Truk Sedang",
+    capacityKg: 4000,
+    rentalFee: 520000,
+    description: "Cocok untuk angkutan gabungan dan pengiriman reguler.",
+  },
+  {
+    id: "fuso-cargo",
+    label: "Fuso Cargo",
+    capacityKg: 8000,
     rentalFee: 980000,
-    description: "Armada besar untuk pengiriman grosir atau proyek reguler.",
+    description: "Armada besar untuk pengiriman grosir atau proyek besar.",
   },
 ];
 
@@ -164,15 +178,23 @@ export function createOrderId() {
 }
 
 export function getPrimaryTruckLabel(logisticsId: string) {
-  if (logisticsId === "pickup") {
-    return "Pick-up Lampung 07";
+  if (logisticsId === "pickup-terbuka") {
+    return "Pick-up Terbuka Lampung 07";
   }
 
-  if (logisticsId === "colt-diesel") {
-    return "Colt Diesel InfoTani 12";
+  if (logisticsId === "pickup-cargo") {
+    return "Pick-up Cargo InfoTani 12";
   }
 
-  return "Fuso Distribusi 18";
+  if (logisticsId === "truk-kecil") {
+    return "Truk Kecil InfoTani 15";
+  }
+
+  if (logisticsId === "truk-sedang") {
+    return "Truk Sedang InfoTani 18";
+  }
+
+  return "Fuso Cargo Distribusi 21";
 }
 
 export function getTruckLocation(destination: string) {

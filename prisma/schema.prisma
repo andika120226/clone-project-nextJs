@@ -21,6 +21,11 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum DeliveryMethod {
+  LOGISTICS
+  SELF_PICKUP
+}
+
 model User {
   id           String        @id @default(cuid())
   name         String
@@ -75,25 +80,37 @@ model BankAccount {
 }
 
 model Product {
-  id          String      @id @default(cuid())
+  id          String           @id @default(cuid())
   farmerId    String
   name        String
   description String?
-  pricePerKg  Decimal     @db.Decimal(12, 2)
+  pricePerKg  Decimal          @db.Decimal(12, 2)
   stockKg     Int
   imageUrl    String?
-  isActive    Boolean     @default(true)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  farmer      User        @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  farmer      User             @relation(fields: [farmerId], references: [id], onDelete: Cascade)
   orderItems  OrderItem[]
+  images      ProductImage[]
 
   @@index([farmerId])
 }
 
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  imageUrl  String
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
 model LogisticsVehicle {
   id          String   @id @default(cuid())
-  name        String
+  name        String   @unique
   vehicleType String
   capacityTon Decimal  @db.Decimal(10, 2)
   price       Decimal  @db.Decimal(12, 2)
@@ -104,32 +121,36 @@ model LogisticsVehicle {
 }
 
 model Order {
-  id                    String            @id @default(cuid())
-  trackingId            String            @unique
+  id                    String             @id @default(cuid())
+  trackingId            String             @unique
   customerId            String
   farmerId              String
   logisticsVehicleId    String?
   customerBankAccountId String?
   farmerBankAccountId   String?
   addressId             String?
-  status                OrderStatus       @default(PENDING)
-  subtotal              Decimal           @db.Decimal(14, 2)
-  logisticsCost         Decimal           @db.Decimal(14, 2) @default(0)
-  total                 Decimal           @db.Decimal(14, 2)
+  status                OrderStatus        @default(PENDING)
+  deliveryMethod        DeliveryMethod     @default(LOGISTICS)
+  subtotal              Decimal            @db.Decimal(14, 2)
+  logisticsCost         Decimal            @db.Decimal(14, 2) @default(0)
+  discountPercentage    Int                @default(0) // 35 for 35% discount
+  total                 Decimal            @db.Decimal(14, 2)
   currentLat            Float?
   currentLng            Float?
   estimatedArrival      DateTime?
   notes                 String?
-  createdAt             DateTime          @default(now())
-  updatedAt             DateTime          @updatedAt
-  customer              User              @relation("CustomerOrders", fields: [customerId], references: [id], onDelete: Cascade)
-  farmer                User              @relation("FarmerOrders", fields: [farmerId], references: [id], onDelete: Cascade)
-  logisticsVehicle      LogisticsVehicle? @relation(fields: [logisticsVehicleId], references: [id], onDelete: SetNull)
-  customerBankAccount   BankAccount?      @relation("OrderCustomerBank", fields: [customerBankAccountId], references: [id], onDelete: SetNull)
-  farmerBankAccount     BankAccount?      @relation("OrderFarmerBank", fields: [farmerBankAccountId], references: [id], onDelete: SetNull)
-  address               Address?          @relation(fields: [addressId], references: [id], onDelete: SetNull)
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+  customer              User               @relation("CustomerOrders", fields: [customerId], references: [id], onDelete: Cascade)
+  farmer                User               @relation("FarmerOrders", fields: [farmerId], references: [id], onDelete: Cascade)
+  logisticsVehicle      LogisticsVehicle?  @relation(fields: [logisticsVehicleId], references: [id], onDelete: SetNull)
+  customerBankAccount   BankAccount?       @relation("OrderCustomerBank", fields: [customerBankAccountId], references: [id], onDelete: SetNull)
+  farmerBankAccount     BankAccount?       @relation("OrderFarmerBank", fields: [farmerBankAccountId], references: [id], onDelete: SetNull)
+  address               Address?           @relation(fields: [addressId], references: [id], onDelete: SetNull)
   items                 OrderItem[]
   trackingPoints        TrackingPoint[]
+  payment               Payment?
+  messages              OrderMessage[]
 
   @@index([customerId])
   @@index([farmerId])
@@ -178,4 +199,50 @@ model PartnershipInquiry {
   status       String   @default("NEW")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CREDIT_CARD
+  BANK_TRANSFER
+  QRIS
+  E_WALLET
+}
+
+model Payment {
+  id              String        @id @default(cuid())
+  orderId         String        @unique
+  order           Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  amount          Decimal       @db.Decimal(14, 2)
+  method          PaymentMethod @default(QRIS)
+  status          PaymentStatus @default(PENDING)
+  midtransTransactionId String?
+  midtransUrl     String?
+  paidAt          DateTime?
+  failureReason   String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([orderId])
+  @@index([status])
+}
+
+model OrderMessage {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  sender    String   // "ADMIN" or "FARMER"
+  message   String
+  status    String   @default("UNREAD") // UNREAD, READ
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([status])
 }

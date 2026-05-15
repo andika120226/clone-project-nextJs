@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { getFarmerProfile, saveFarmerProfile } from "@/lib/admin-store";
 import { useAdminTenant } from "@/components/admin/useAdminTenant";
+import ImageUploadModal from "@/components/ImageUploadModal";
 
 type ProfileForm = {
   farmerName: string;
@@ -29,6 +30,8 @@ export default function AdminProfilePage() {
   const { ready, session } = useAdminTenant();
   const [form, setForm] = useState<ProfileForm>(initialForm);
   const [savedMessage, setSavedMessage] = useState("");
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [imageModalType, setImageModalType] = useState<"profile" | "banner">("profile");
 
   useEffect(() => {
     if (!ready) {
@@ -56,10 +59,13 @@ export default function AdminProfilePage() {
     });
   }, [ready, router, session]);
 
-  function readAsDataUrl(file: File, callback: (value: string) => void) {
-    const reader = new FileReader();
-    reader.onload = () => callback(String(reader.result ?? ""));
-    reader.readAsDataURL(file);
+  function handleImageUploadModal(imageUrl: string) {
+    if (imageModalType === "profile") {
+      setForm((prev) => ({ ...prev, profilePhoto: imageUrl }));
+    } else {
+      setForm((prev) => ({ ...prev, catalogBanner: imageUrl }));
+    }
+    setImageModalOpen(false);
   }
 
   function handleSave() {
@@ -141,19 +147,16 @@ export default function AdminProfilePage() {
         <article className="rounded-3xl border border-white/80 bg-white/65 p-5 space-y-4">
           <div>
             <p className="text-sm font-semibold text-slate-800">Foto Profil</p>
-            <input
-              type="file"
-              accept=".jpg,.jpeg,.png,.webp"
-              title="Upload foto profil petani"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (!file) {
-                  return;
-                }
-                readAsDataUrl(file, (value) => setForm((prev) => ({ ...prev, profilePhoto: value })));
+            <button
+              type="button"
+              onClick={() => {
+                setImageModalType("profile");
+                setImageModalOpen(true);
               }}
-              className="mt-2 w-full"
-            />
+              className="mt-3 inline-block rounded-lg bg-cyan-50 px-4 py-2 text-sm font-medium text-cyan-700 hover:bg-cyan-100 transition"
+            >
+              {form.profilePhoto ? "Ubah Foto Profil" : "Tambahkan Foto Profil"}
+            </button>
             {form.profilePhoto && (
               <Image src={form.profilePhoto} alt="Foto profil petani" width={400} height={160} className="mt-3 h-40 w-full rounded-2xl object-cover" />
             )}
@@ -161,19 +164,16 @@ export default function AdminProfilePage() {
 
           <div>
             <p className="text-sm font-semibold text-slate-800">Banner Katalog</p>
-            <input
-              type="file"
-              accept=".jpg,.jpeg,.png,.webp"
-              title="Upload banner katalog"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (!file) {
-                  return;
-                }
-                readAsDataUrl(file, (value) => setForm((prev) => ({ ...prev, catalogBanner: value })));
+            <button
+              type="button"
+              onClick={() => {
+                setImageModalType("banner");
+                setImageModalOpen(true);
               }}
-              className="mt-2 w-full"
-            />
+              className="mt-3 inline-block rounded-lg bg-cyan-50 px-4 py-2 text-sm font-medium text-cyan-700 hover:bg-cyan-100 transition"
+            >
+              {form.catalogBanner ? "Ubah Banner Katalog" : "Tambahkan Banner Katalog"}
+            </button>
             {form.catalogBanner && (
               <Image src={form.catalogBanner} alt="Banner katalog" width={400} height={160} className="mt-3 h-40 w-full rounded-2xl object-cover" />
             )}
@@ -189,6 +189,14 @@ export default function AdminProfilePage() {
           </div>
         </article>
       </div>
+
+      <ImageUploadModal
+        isOpen={imageModalOpen}
+        title={imageModalType === "profile" ? "Ubah Foto Profil" : "Ubah Banner Katalog"}
+        initialImage={imageModalType === "profile" ? form.profilePhoto : form.catalogBanner}
+        onClose={() => setImageModalOpen(false)}
+        onConfirm={handleImageUploadModal}
+      />
     </section>
   );
 }

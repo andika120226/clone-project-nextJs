@@ -2,13 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 import { useParams } from "next/navigation";
 import { ChevronLeft, Warehouse } from "lucide-react";
 import { DATA_TANI } from "@/lib/data-dummy";
 import {
   getAdminAccountByCatalogId,
   getFarmerProfile,
+  getPriceByProductName,
   getTenantCatalog,
   getTenantProducts,
 } from "@/lib/admin-store";
@@ -59,9 +60,18 @@ function resolveSlotId(rawId: string) {
   return null;
 }
 
+function useIsHydrated() {
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+}
+
 export default function InfoTaniDetailPage() {
   const params = useParams<{ id: string }>();
   const rawId = params?.id ?? "";
+  const isHydrated = useIsHydrated();
 
   const viewModel = useMemo(() => {
     const slotId = resolveSlotId(rawId);
@@ -70,7 +80,7 @@ export default function InfoTaniDetailPage() {
     }
 
     const catalog = getTenantCatalog(slotId);
-    const account = getAdminAccountByCatalogId(slotId);
+    const account = isHydrated ? getAdminAccountByCatalogId(slotId) : null;
     const profile = account ? getFarmerProfile(account.tenantId) : null;
     const products = account ? getTenantProducts(account.tenantId) : [];
     const primaryProduct = products[0] ?? null;
@@ -78,7 +88,7 @@ export default function InfoTaniDetailPage() {
 
     const farmerName = profile?.farmerName || account?.name || legacyProduct?.nama_petani || catalog.name;
     const productName = primaryProduct?.name || legacyProduct?.nama_produk || "Produk belum diatur";
-    const unitPrice = unitPriceByProduct(productName);
+    const unitPrice = primaryProduct?.pricePerKg || getPriceByProductName(productName) || unitPriceByProduct(productName);
     const bankName = bankNames[(slotId - 1) % bankNames.length];
     const accountNumber = getAccountNumber(`${catalog.code}-${farmerName}-${productName}`);
     const profilePhoto = profile?.profilePhoto || legacyProduct?.foto_profil || "";
@@ -92,7 +102,7 @@ export default function InfoTaniDetailPage() {
       nama_komoditas: product.name || `Produk ${index + 1}`,
       stok_kg: product.stockKg,
       satuan: "kg",
-      harga_per_unit: unitPriceByProduct(product.name || productName),
+      harga_per_unit: product.pricePerKg || unitPriceByProduct(product.name || productName),
       status:
         product.stockStatus === "Ready"
           ? "siap"
@@ -101,6 +111,25 @@ export default function InfoTaniDetailPage() {
             : "menipis",
       gambar: product.imageUrl || "",
     }));
+
+    const checkoutProducts = products.length > 0
+      ? products.map((product) => ({
+          id: product.id,
+          name: product.name,
+          unitPrice: product.pricePerKg || unitPriceByProduct(product.name),
+          stockKg: product.stockKg,
+          imageUrl: product.imageUrl || "",
+        }))
+      : [{
+          id: primaryProduct?.id ?? legacyProduct?.id ?? rawId,
+          name: productName,
+          unitPrice,
+          stockKg: legacyProduct?.stok ?? 0,
+          imageUrl: productImage,
+        }];
+
+    const productId = primaryProduct?.id ?? legacyProduct?.id ?? rawId;
+    const tenantId = account?.tenantId ?? `tenant-${slotId}`;
 
     return {
       slotId,
@@ -115,8 +144,11 @@ export default function InfoTaniDetailPage() {
       productImage,
       location,
       stockItems,
+      productId,
+      tenantId,
+      checkoutProducts,
     };
-  }, [rawId]);
+  }, [isHydrated, rawId]);
 
   if (!viewModel) {
     return (
@@ -149,6 +181,9 @@ export default function InfoTaniDetailPage() {
     productImage,
     location,
     stockItems,
+    productId,
+    tenantId,
+    checkoutProducts,
   } = viewModel;
 
   return (
@@ -221,12 +256,18 @@ export default function InfoTaniDetailPage() {
         </div>
 
         <DetailInteractivePanel
+          key={`${catalog.code}-${checkoutProducts.map((item) => item.id).join("_")}`}
+          productId={productId}
           farmerName={farmerName}
           productName={productName}
           unitPrice={unitPrice}
           bankName={bankName}
           accountNumber={accountNumber}
           accountHolder={farmerName}
+          tenantId={tenantId}
+          catalogCode={catalog.code}
+          productImage={productImage}
+          availableProducts={checkoutProducts}
         />
 
         <div>

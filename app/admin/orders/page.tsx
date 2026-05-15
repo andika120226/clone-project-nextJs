@@ -126,6 +126,7 @@ export default function AdminOrdersPage() {
               <div className="grid gap-3 rounded-2xl border border-cyan-100 bg-white/80 p-4 text-sm text-slate-700">
                 <p>Berat Muatan: {activeOrder.shipmentWeightTon} ton</p>
                 <p>Metode Pembayaran: {activeOrder.paymentMethod}</p>
+                <p>Status Pembayaran: {activeOrder.paymentStatus || "SUCCESS"}</p>
                 <p>Total Bayar: {toRupiah(activeOrder.totalPay)}</p>
               </div>
 
@@ -181,6 +182,22 @@ export default function AdminOrdersPage() {
                   <p className="font-semibold text-cyan-800">Total Tambahan: {toRupiah(analysis.totalAdditionalCost)}</p>
                 </div>
               </div>
+
+              {(activeOrder.messages?.length ?? 0) > 0 && (
+                <div className="rounded-2xl border border-cyan-100 bg-white/80 p-4">
+                  <p className="text-sm font-semibold text-slate-800">Pesan Pesanan</p>
+                  <div className="mt-3 space-y-2 text-sm text-slate-700">
+                    {activeOrder.messages?.map((message) => (
+                      <div key={message.id} className="rounded-xl bg-cyan-50 px-3 py-2">
+                        <p className="text-xs uppercase tracking-wide text-cyan-700">
+                          {message.sender} • {message.status}
+                        </p>
+                        <p className="mt-1">{message.message}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div>
                 <p className="text-sm font-semibold text-slate-800">Update Status</p>
