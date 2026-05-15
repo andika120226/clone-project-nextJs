@@ -60,6 +60,11 @@ export default function DetailInteractivePanel({
   accountNumber,
   accountHolder,
 }: DetailInteractivePanelProps) {
+  const displayFarmerName = farmerName.trim() || "Petani belum diatur";
+  const displayProductName = productName.trim() || "Produk belum diatur";
+  const displayBankName = bankName.trim() || "Rekening belum diatur";
+  const displayAccountNumber = accountNumber.trim() || "0000000000";
+  const displayAccountHolder = accountHolder.trim() || displayFarmerName;
   const [quantity, setQuantity] = useState(100);
   const [draft, setDraft] = useState("");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(
@@ -69,7 +74,7 @@ export default function DetailInteractivePanel({
     {
       id: 1,
       author: "petani",
-      text: `Halo, saya ${farmerName}. Untuk ${productName}, stok masih tersedia dan siap kirim.`,
+      text: `Halo, saya ${displayFarmerName}. Untuk ${displayProductName}, stok masih tersedia dan siap kirim.`,
       time: "09:10",
     },
     {
@@ -138,8 +143,8 @@ export default function DetailInteractivePanel({
             <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
               Rekening petani
             </p>
-            <p className="mt-1 font-semibold text-slate-900">{bankName}</p>
-            <p className="text-xs text-slate-600">a.n. {accountHolder}</p>
+            <p className="mt-1 font-semibold text-slate-900">{displayBankName}</p>
+            <p className="text-xs text-slate-600">a.n. {displayAccountHolder}</p>
           </div>
         </div>
 
@@ -192,18 +197,18 @@ export default function DetailInteractivePanel({
                 {activePaymentMethod?.name ?? selectedPaymentMethod}
               </span>
               <span className="rounded-full bg-white px-3 py-1 font-medium text-slate-700">
-                {bankName}
+                {displayBankName}
               </span>
             </div>
             <div className="mt-4 space-y-2 rounded-2xl bg-white p-4 shadow-sm">
               <div>
                 <p className="text-xs text-slate-500">Nama pemilik rekening</p>
-                <p className="font-semibold text-slate-900">{accountHolder}</p>
+                <p className="font-semibold text-slate-900">{displayAccountHolder}</p>
               </div>
               <div>
                 <p className="text-xs text-slate-500">Nomor rekening</p>
                 <p className="font-semibold tracking-[0.08em] text-indigo-700">
-                  {accountNumber}
+                  {displayAccountNumber}
                 </p>
               </div>
             </div>
@@ -215,14 +220,14 @@ export default function DetailInteractivePanel({
             </p>
             <button
               type="button"
-              onClick={() => navigator.clipboard?.writeText(accountNumber)}
+              onClick={() => navigator.clipboard?.writeText(displayAccountNumber)}
               className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-500"
             >
               <Copy className="h-4 w-4" />
               Salin Nomor Rekening
             </button>
             <a
-              href={`https://wa.me/6281234567890?text=Saya%20ingin%20transfer%20ke%20rekening%20${bankName}%20${accountNumber}%20atas%20nama%20${encodeURIComponent(accountHolder)}`}
+              href={`https://wa.me/6281234567890?text=Saya%20ingin%20transfer%20ke%20rekening%20${displayBankName}%20${displayAccountNumber}%20atas%20nama%20${encodeURIComponent(displayAccountHolder)}`}
               target="_blank"
               rel="noreferrer"
               className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100"
@@ -250,7 +255,7 @@ export default function DetailInteractivePanel({
           Isi quantity pembelian (kg) untuk menghitung total harga otomatis.
         </p>
 
-        <label
+          <label
           className="mt-4 block text-sm font-medium text-slate-700"
           htmlFor="quantity"
         >

@@ -123,6 +123,7 @@ type DashboardPoint = {
 const ADMIN_ACCOUNTS_KEY = "infotani.admin.accounts";
 const ADMIN_SESSION_KEY = "infotani.admin.session";
 const SHARED_TRACKING_KEY = "infotani.shared.tracking";
+const CATALOG_COUNT = 15;
 
 const DEFAULT_IMAGE = "/image/gambar13.jpg";
 
@@ -167,30 +168,34 @@ function toTenantKey(tenantId: string, suffix: string) {
 }
 
 export function sampleCatalogs(): AdminCatalog[] {
-  const source = DATA_TANI.map((item, index) => ({
-    id: index + 1,
-    code: `CAT-${(index + 1).toString().padStart(2, "0")}`,
-    name: item.nama_produk,
-    region: item.lokasi,
-  }));
+  return Array.from({ length: CATALOG_COUNT }).map((_, index) => {
+    const id = index + 1;
 
-  const catalogs: AdminCatalog[] = [...source];
-  while (catalogs.length < 15) {
-    const i = catalogs.length + 1;
-    catalogs.push({
-      id: i,
-      code: `CAT-${i.toString().padStart(2, "0")}`,
-      name: `Katalog Publik ${i}`,
-      region: "Lampung",
-    });
-  }
-
-  return catalogs;
+    return {
+      id,
+      code: `CAT-${id.toString().padStart(2, "0")}`,
+      name: `Slot Katalog ${id}`,
+      region: "Belum diatur",
+    };
+  });
 }
 
 export function assignCatalogForEmail(email: string) {
+  const normalizedEmail = email.trim().toLowerCase();
+  const existing = getStoredAdmin(normalizedEmail);
+  if (existing) {
+    return getTenantCatalog(existing.assignedCatalogId);
+  }
+
+  const accounts = getAccounts();
+  const usedCatalogIds = new Set(accounts.map((item) => item.assignedCatalogId));
+  const available = sampleCatalogs().find((catalog) => !usedCatalogIds.has(catalog.id));
+  if (available) {
+    return available;
+  }
+
   const catalogs = sampleCatalogs();
-  const idx = Math.abs(hashCode(email.trim().toLowerCase())) % catalogs.length;
+  const idx = Math.abs(hashCode(normalizedEmail)) % catalogs.length;
   return catalogs[idx];
 }
 
@@ -310,106 +315,6 @@ export function ensureAdminSession() {
   return { session, account };
 }
 
-function createDefaultProduct(account: AdminAccount): AdminProduct {
-  const catalogs = sampleCatalogs();
-  const selectedCatalog =
-    catalogs.find((item) => item.id === account.assignedCatalogId) ?? catalogs[0];
-
-  const related = DATA_TANI[(selectedCatalog.id - 1) % DATA_TANI.length];
-
-  return {
-    id: `prd-${Date.now()}`,
-    tenantId: account.tenantId,
-    name: related?.nama_produk ?? selectedCatalog.name,
-    stockKg: related?.stok ?? 320,
-    stockStatus: (related?.stok ?? 320) < 150 ? "Menipis" : "Ready",
-    imageUrl: related?.gambar_produk?.replace("/image/", "/") ?? DEFAULT_IMAGE,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-}
-
-function createDefaultProfile(account: AdminAccount): FarmerProfile {
-  const related = DATA_TANI[(account.assignedCatalogId - 1) % DATA_TANI.length];
-
-  return {
-    tenantId: account.tenantId,
-    farmerName: related?.nama_petani ?? account.name,
-    profilePhoto: related?.foto_profil?.replace("/image/", "/") ?? DEFAULT_IMAGE,
-    catalogBanner: related?.gambar_banner?.replace("/image/", "/") ?? DEFAULT_IMAGE,
-    description:
-      related?.deskripsi_panen ??
-      "Petani mitra InfoTani yang berfokus pada kualitas panen, konsistensi stok, dan ketepatan pengiriman.",
-    latitude: -5.429,
-    longitude: 105.262,
-    updatedAt: new Date().toISOString(),
-  };
-}
-
-function createDefaultOrders(account: AdminAccount, products: AdminProduct[]): AdminOrder[] {
-  const primary = products[0] ?? createDefaultProduct(account);
-  const now = Date.now();
-
-  const lines: OrderLineItem[] = [
-    {
-      productId: primary.id,
-      productName: primary.name,
-      quantityKg: 1200,
-      unitPrice: 14000,
-    },
-  ];
-
-  const analysis = analyzeLogisticsLoad(1.2);
-
-  return [
-    {
-      id: `ord-${now}`,
-      tenantId: account.tenantId,
-      customerName: "PT Sejahtera Pangan",
-      customerEmail: "buyer1@market.id",
-      billCode: createBillCode(),
-      createdAt: new Date(now - 3600 * 1000 * 14).toISOString(),
-      paymentMethod: "Transfer Bank",
-      shippingOption: "PT_INFO_TANI",
-      deliveryStatus: "Konfirmasi",
-      shipmentWeightTon: 1.2,
-      lineItems: lines,
-      subtotal: 16800000,
-      logisticsAnalysis: analysis,
-      logisticsTypeLabel: "Pick-up PT InfoTani",
-      logisticsAdditionalCost: analysis.totalAdditionalCost,
-      totalPay: 16800000 + analysis.totalAdditionalCost,
-      truckLocationLabel: "Gudang InfoTani Lampung",
-    },
-    {
-      id: `ord-${now + 1}`,
-      tenantId: account.tenantId,
-      customerName: "UD Makmur Jaya",
-      customerEmail: "buyer2@market.id",
-      billCode: createBillCode(),
-      createdAt: new Date(now - 3600 * 1000 * 42).toISOString(),
-      paymentMethod: "QRIS",
-      shippingOption: "SELF_PICKUP",
-      deliveryStatus: "Selesai",
-      shipmentWeightTon: 0.8,
-      lineItems: [
-        {
-          productId: primary.id,
-          productName: primary.name,
-          quantityKg: 800,
-          unitPrice: 14500,
-        },
-      ],
-      subtotal: 11600000,
-      logisticsAnalysis: analyzeLogisticsLoad(0.8),
-      logisticsTypeLabel: "Ambil Sendiri",
-      logisticsAdditionalCost: 0,
-      totalPay: 11600000,
-      truckLocationLabel: "Pesanan selesai",
-    },
-  ];
-}
-
 function ensureTenantBootstrapped(account: AdminAccount) {
   const productsKey = toTenantKey(account.tenantId, "products");
   const ordersKey = toTenantKey(account.tenantId, "orders");
@@ -418,27 +323,57 @@ function ensureTenantBootstrapped(account: AdminAccount) {
   const trackingKey = toTenantKey(account.tenantId, "tracking");
 
   const products = readJson<AdminProduct[]>(productsKey, []);
-  const seededProducts = products.length > 0 ? products : [createDefaultProduct(account)];
-  if (products.length === 0) {
-    writeJson(productsKey, seededProducts);
+  if (products.length === 1 && isLegacySeededProduct(products[0], account)) {
+    writeJson(productsKey, []);
   }
 
   const orders = readJson<AdminOrder[]>(ordersKey, []);
-  if (orders.length === 0) {
-    const seeded = createDefaultOrders(account, seededProducts);
-    writeJson(ordersKey, seeded);
-    writeJson(historyKey, seeded.filter((item) => item.deliveryStatus === "Selesai"));
+  if (orders.length === 2 && isLegacySeededOrderSet(orders, account)) {
+    writeJson(ordersKey, []);
+    writeJson(historyKey, []);
   }
 
   const profile = readJson<FarmerProfile | null>(profileKey, null);
-  if (!profile) {
-    writeJson(profileKey, createDefaultProfile(account));
+  if (profile && isLegacySeededProfile(profile, account)) {
+    writeJson(profileKey, null);
   }
 
   const tracking = readJson<ShipmentTracking[]>(trackingKey, []);
   if (tracking.length === 0) {
     writeJson(trackingKey, []);
   }
+}
+
+function isLegacySeededProduct(product: AdminProduct, account: AdminAccount) {
+  const related = DATA_TANI[(account.assignedCatalogId - 1) % DATA_TANI.length];
+  return (
+    product.name === related?.nama_produk &&
+    product.stockKg === (related?.stok ?? product.stockKg) &&
+    (product.imageUrl === related?.gambar_produk?.replace("/image/", "/") || product.imageUrl === DEFAULT_IMAGE)
+  );
+}
+
+function isLegacySeededProfile(profile: FarmerProfile, account: AdminAccount) {
+  const related = DATA_TANI[(account.assignedCatalogId - 1) % DATA_TANI.length];
+  return (
+    profile.farmerName === (related?.nama_petani ?? account.name) &&
+    profile.description === related?.deskripsi_panen &&
+    profile.profilePhoto === related?.foto_profil?.replace("/image/", "/") &&
+    profile.catalogBanner === related?.gambar_banner?.replace("/image/", "/")
+  );
+}
+
+function isLegacySeededOrderSet(orders: AdminOrder[], account: AdminAccount) {
+  const related = DATA_TANI[(account.assignedCatalogId - 1) % DATA_TANI.length];
+  if (!related) {
+    return false;
+  }
+
+  return orders.every((order) => order.tenantId === account.tenantId && order.lineItems.some((item) => item.productName === related.nama_produk));
+}
+
+export function getAdminAccountByCatalogId(assignedCatalogId: number) {
+  return getAccounts().find((item) => item.assignedCatalogId === assignedCatalogId) ?? null;
 }
 
 export function getTenantCatalog(assignedCatalogId: number) {
