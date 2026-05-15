@@ -9,7 +9,6 @@ import {
   getProvinsiList,
   getKomoditasList,
   filterByProvinsi,
-  filterByKomoditas,
 } from "@/lib/supply-data";
 
 export default function SupplyTable() {

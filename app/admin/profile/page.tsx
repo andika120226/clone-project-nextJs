@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { getFarmerProfile, saveFarmerProfile } from "@/lib/admin-store";
 import { useAdminTenant } from "@/components/admin/useAdminTenant";
@@ -154,7 +155,7 @@ export default function AdminProfilePage() {
               className="mt-2 w-full"
             />
             {form.profilePhoto && (
-              <img src={form.profilePhoto} alt="Foto profil petani" className="mt-3 h-40 w-full rounded-2xl object-cover" />
+              <Image src={form.profilePhoto} alt="Foto profil petani" width={400} height={160} className="mt-3 h-40 w-full rounded-2xl object-cover" />
             )}
           </div>
 
@@ -174,7 +175,7 @@ export default function AdminProfilePage() {
               className="mt-2 w-full"
             />
             {form.catalogBanner && (
-              <img src={form.catalogBanner} alt="Banner katalog" className="mt-3 h-40 w-full rounded-2xl object-cover" />
+              <Image src={form.catalogBanner} alt="Banner katalog" width={400} height={160} className="mt-3 h-40 w-full rounded-2xl object-cover" />
             )}
           </div>
 

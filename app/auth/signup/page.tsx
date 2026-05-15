@@ -1,6 +1,8 @@
 import Link from "next/link";
 import CustomerAuthForm from "@/components/customer/CustomerAuthForm";
 
+export const dynamic = "force-dynamic";
+
 export default function SignupPage() {
   return (
     <main className="min-h-screen bg-zinc-950 px-4 py-12 text-zinc-100 md:px-8">

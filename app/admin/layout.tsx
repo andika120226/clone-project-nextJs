@@ -1,4 +1,4 @@
-import "../../globals.css";
+import "../globals.css";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import AdminLayoutShell from "@/components/admin/AdminLayoutShell";
 

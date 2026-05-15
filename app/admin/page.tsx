@@ -16,7 +16,7 @@ import { getDashboardSalesPoints, getTenantOrders, getTenantProducts, toRupiah }
 
 export default function AdminDashboardPage() {
   const router = useRouter();
-  const { ready, session, account, catalog } = useAdminTenant();
+  const { ready, session, catalog } = useAdminTenant();
 
   useEffect(() => {
     if (!ready) {
@@ -74,29 +74,43 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <section className="space-y-6">
-      <div className="rounded-3xl border border-white/80 bg-white/70 p-6 shadow-[0_25px_55px_rgba(8,145,178,0.2)]">
-        <p className="text-xs uppercase tracking-[0.2em] text-cyan-700">Beranda Dashboard</p>
-        <h1 className="mt-2 text-3xl font-semibold text-slate-900">Halo, {account?.name ?? session.name}</h1>
-        <p className="mt-2 text-sm text-slate-600">
-          Tenant aktif: {catalog?.name} ({catalog?.region})
-        </p>
+    <main className="space-y-6">
+      {/* Header Section */}
+      <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+        <div>
+          <p className="text-xs uppercase tracking-[0.2em] text-cyan-600">Dashboard Admin</p>
+          <h1 className="mt-2 text-3xl font-bold text-slate-900">Inventaris Produk</h1>
+          <p className="mt-1 text-sm text-slate-500">Kelola stok & harga {catalog?.name}</p>
+        </div>
+        <a
+          href="/admin/products"
+          className="inline-flex rounded-xl border border-cyan-200 bg-gradient-to-r from-cyan-500 to-cyan-600 px-6 py-3 font-semibold text-white shadow-lg transition hover:border-cyan-300 hover:shadow-xl"
+        >
+          + Tambah Produk Baru
+        </a>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      {/* Summary Cards - 4 Columns */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {summaryCards.map((card) => (
-          <article key={card.label} className="rounded-2xl border border-white/80 bg-white/65 p-4 shadow-sm">
-            <p className="text-sm text-slate-600">{card.label}</p>
-            <p className="mt-2 text-2xl font-semibold text-slate-900">{card.value}</p>
+          <article
+            key={card.label}
+            className="rounded-2xl border border-white/60 bg-white/50 p-5 shadow-sm backdrop-blur-sm transition hover:bg-white/65"
+          >
+            <p className="text-xs uppercase tracking-[0.15em] text-slate-500">{card.label}</p>
+            <p className="mt-3 text-3xl font-bold text-slate-900">{card.value}</p>
           </article>
         ))}
       </div>
 
+      {/* Charts Section */}
       <div className="grid gap-5 lg:grid-cols-2">
-        <article className="rounded-3xl border border-white/80 bg-white/65 p-5">
-          <h2 className="text-lg font-semibold text-slate-900">Kurva Penjualan Harian</h2>
-          <p className="text-sm text-slate-600">Monitoring performa 7 hari terakhir.</p>
-          <div className="mt-4 h-72">
+        <article className="rounded-3xl border border-white/60 bg-white/50 p-6 shadow-sm backdrop-blur-sm">
+          <div className="mb-4">
+            <h2 className="text-lg font-bold text-slate-900">Kurva Penjualan Harian</h2>
+            <p className="mt-1 text-sm text-slate-500">Monitoring performa 7 hari terakhir</p>
+          </div>
+          <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={daily} margin={{ top: 20, right: 12, left: 0, bottom: 0 }}>
                 <defs>
@@ -105,23 +119,25 @@ export default function AdminDashboardPage() {
                     <stop offset="95%" stopColor="#0e7490" stopOpacity={0.05} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="4 4" stroke="#bae6fd" />
+                <CartesianGrid strokeDasharray="4 4" stroke="#e2e8f0" />
                 <XAxis dataKey="label" tick={{ fill: "#0f172a", fontSize: 12 }} />
                 <YAxis
                   tick={{ fill: "#0f172a", fontSize: 12 }}
                   tickFormatter={(value) => `${Math.round((value as number) / 1000000)} jt`}
                 />
-                <Tooltip formatter={(value: number) => toRupiah(value)} />
+                <Tooltip formatter={(value) => toRupiah(value as number)} />
                 <Area type="monotone" dataKey="value" stroke="#0891b2" fill="url(#dailyGradient)" strokeWidth={2.5} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </article>
 
-        <article className="rounded-3xl border border-white/80 bg-white/65 p-5">
-          <h2 className="text-lg font-semibold text-slate-900">Kurva Penjualan Mingguan</h2>
-          <p className="text-sm text-slate-600">Ringkasan 4 minggu terakhir.</p>
-          <div className="mt-4 h-72">
+        <article className="rounded-3xl border border-white/60 bg-white/50 p-6 shadow-sm backdrop-blur-sm">
+          <div className="mb-4">
+            <h2 className="text-lg font-bold text-slate-900">Kurva Penjualan Mingguan</h2>
+            <p className="mt-1 text-sm text-slate-500">Ringkasan 4 minggu terakhir</p>
+          </div>
+          <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={weekly} margin={{ top: 20, right: 12, left: 0, bottom: 0 }}>
                 <defs>
@@ -130,19 +146,19 @@ export default function AdminDashboardPage() {
                     <stop offset="95%" stopColor="#0284c7" stopOpacity={0.04} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="4 4" stroke="#bae6fd" />
+                <CartesianGrid strokeDasharray="4 4" stroke="#e2e8f0" />
                 <XAxis dataKey="label" tick={{ fill: "#0f172a", fontSize: 12 }} />
                 <YAxis
                   tick={{ fill: "#0f172a", fontSize: 12 }}
                   tickFormatter={(value) => `${Math.round((value as number) / 1000000)} jt`}
                 />
-                <Tooltip formatter={(value: number) => toRupiah(value)} />
+                <Tooltip formatter={(value) => toRupiah(value as number)} />
                 <Area type="monotone" dataKey="value" stroke="#0369a1" fill="url(#weeklyGradient)" strokeWidth={2.5} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </article>
       </div>
-    </section>
+    </main>
   );
 }

@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -248,7 +249,7 @@ function getStatusTone(status: CustomerOrder["status"]) {
     return "border-cyan-400/30 bg-cyan-500/10 text-cyan-100";
   }
 
-  if (status === "Dikemas") {
+  if (status === "Diproses") {
     return "border-amber-400/30 bg-amber-500/10 text-amber-100";
   }
 
@@ -256,7 +257,7 @@ function getStatusTone(status: CustomerOrder["status"]) {
     return "border-emerald-400/30 bg-emerald-500/10 text-emerald-100";
   }
 
-  if (status === "Dibatalkan") {
+  if (status === "Menunggu Bayar") {
     return "border-rose-400/30 bg-rose-500/10 text-rose-100";
   }
 
@@ -268,7 +269,7 @@ function createDeliveryProgress(status: CustomerOrder["status"]) {
     return 68;
   }
 
-  if (status === "Dikemas") {
+  if (status === "Diproses") {
     return 34;
   }
 
@@ -276,8 +277,8 @@ function createDeliveryProgress(status: CustomerOrder["status"]) {
     return 100;
   }
 
-  if (status === "Dibatalkan") {
-    return 0;
+  if (status === "Menunggu Bayar") {
+    return 12;
   }
 
   return 12;
@@ -492,9 +493,11 @@ export default function CustomerProfileDashboard() {
           <div className="flex items-center gap-3 rounded-2xl border border-cyan-400/15 bg-white/5 p-4">
             <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-cyan-400/20 bg-zinc-900 text-xl font-semibold text-cyan-200">
               {avatarPreview ? (
-                <img
+                <Image
                   src={normalizeAvatar(avatarPreview)}
                   alt="Avatar Customer"
+                  width={56}
+                  height={56}
                   className="h-full w-full object-cover"
                 />
               ) : (
@@ -615,9 +618,11 @@ export default function CustomerProfileDashboard() {
                   <div className="rounded-3xl border border-cyan-400/15 bg-zinc-950/70 p-5">
                     <div className="mx-auto flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border border-cyan-400/20 bg-zinc-900 text-4xl text-cyan-100">
                       {avatarPreview ? (
-                        <img
+                        <Image
                           src={normalizeAvatar(avatarPreview)}
                           alt="Foto profil customer"
+                          width={128}
+                          height={128}
                           className="h-full w-full object-cover"
                         />
                       ) : (

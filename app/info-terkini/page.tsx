@@ -1,10 +1,7 @@
 import Image from "next/image";
 import {
-  AlertTriangle,
   BadgeInfo,
-  CheckCircle2,
   ShieldCheck,
-  Wheat,
 } from "lucide-react";
 import SupplyTable from "@/components/info_terkini/SupplyTable";
 
@@ -93,7 +90,7 @@ export default function InfoTerkiniPage() {
         </div>
 
         <section className="grid gap-5 md:grid-cols-3">
-          {statCards.map((card, index) => (
+          {statCards.map((card) => (
             <article
               key={card.label}
               className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_10px_30px_rgba(15,23,42,0.06)]"

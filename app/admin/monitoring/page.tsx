@@ -55,7 +55,7 @@ export default function AdminMonitoringPage() {
       return [];
     }
     return getShipmentTracking(session.tenantId);
-  }, [session, trackIndex]);
+  }, [session]);
 
   function handleMoveTruck() {
     if (!session) {
