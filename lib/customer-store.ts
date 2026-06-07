@@ -1,4 +1,5 @@
 export type CustomerAccount = {
+  id?: string;
   name: string;
   email: string;
   phone: string;
@@ -41,17 +42,35 @@ export type CustomerOrder = OrderItem & {
   trackingNote: string;
   truckLocation: string;
   destination: string;
+  customerName?: string;
+  customerPhone?: string;
+  customerEmail?: string;
+  items?: Array<{
+    id: string;
+    productId: string;
+    productName: string;
+    quantityKg: number;
+    unitPrice: number;
+    subtotal: number;
+  }>;
+  paymentStatus?: string;
+  estimatedArrival?: string | null;
+  currentLat?: number | null;
+  currentLng?: number | null;
 };
 
 export type AuthSession = {
+  id?: string;
   email: string;
   name: string;
   createdAt: string;
+  token?: string;
 };
 
 const CUSTOMER_KEY = "infotani.customer.account";
 const SESSION_KEY = "infotani.customer.session";
 const ORDERS_KEY = "infotani.customer.orders";
+const TOKEN_KEY = "infotani.customer.token";
 
 function canUseStorage() {
   return typeof window !== "undefined";
@@ -109,6 +128,41 @@ export function clearSession() {
   }
 
   window.localStorage.removeItem(SESSION_KEY);
+  window.localStorage.removeItem(TOKEN_KEY);
+  window.localStorage.removeItem(CUSTOMER_KEY);
+}
+
+export function saveToken(token: string) {
+  writeJson(TOKEN_KEY, token);
+}
+
+export function getStoredToken() {
+  return readJson<string | null>(TOKEN_KEY, null);
+}
+
+export async function verifyStoredSession() {
+  const token = getStoredToken();
+  if (!token) {
+    return null;
+  }
+
+  try {
+    const response = await fetch("/api/auth/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+    });
+
+    if (!response.ok) {
+      clearSession();
+      return null;
+    }
+
+    const data = await response.json();
+    return data.userId ? { id: data.userId, email: data.email } : null;
+  } catch {
+    return null;
+  }
 }
 
 export function getStoredOrders() {

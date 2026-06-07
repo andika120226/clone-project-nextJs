@@ -5,9 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, KeyRound, Mail, Phone, UserRound } from "lucide-react";
 import {
   CustomerAccount,
-  getStoredCustomer,
   saveCustomer,
   saveSession,
+  saveToken,
 } from "@/lib/customer-store";
 
 type CustomerAuthFormProps = {
@@ -48,55 +48,101 @@ export default function CustomerAuthForm({ mode }: CustomerAuthFormProps) {
     setError(null);
     setSuccess(null);
 
-    const savedCustomer = getStoredCustomer();
+    const email = form.email.trim().toLowerCase();
 
-    if (isSignup) {
-      if (!form.name.trim() || !form.email.trim() || !form.phone.trim()) {
-        setError("Lengkapi nama, email, dan nomor telepon.");
-        return;
+    void (async () => {
+      try {
+        if (isSignup) {
+          if (!form.name.trim() || !email || !form.phone.trim()) {
+            setError("Lengkapi nama, email, dan nomor telepon.");
+            return;
+          }
+
+          if (form.password.trim().length < 6) {
+            setError("Password minimal 6 karakter.");
+            return;
+          }
+
+          const response = await fetch("/api/auth/signup", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: form.name.trim(),
+              email,
+              phone: form.phone.trim(),
+              password: form.password.trim(),
+              role: "CUSTOMER",
+            }),
+          });
+
+          const payload = await response.json();
+          if (!response.ok) {
+            throw new Error(payload?.error || "Gagal mendaftarkan akun customer.");
+          }
+
+          const user = payload.user as { id: string; name: string; email: string; phone?: string };
+          const token = payload.token as string;
+          const account: CustomerAccount = {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            phone: form.phone.trim(),
+            password: form.password.trim(),
+            createdAt: new Date().toISOString(),
+          };
+
+          saveCustomer(account);
+          saveToken(token);
+          saveSession({
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            token: token,
+            createdAt: new Date().toISOString(),
+          });
+          setSuccess("Akun customer berhasil dibuat.");
+          router.push(nextUrl);
+          return;
+        }
+
+        const response = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password: form.password.trim() }),
+        });
+
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload?.error || "Email atau password tidak cocok.");
+        }
+
+        const user = payload.user as { id: string; name: string; email: string; phone?: string };
+        const token = payload.token as string;
+        const account: CustomerAccount = {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone || "",
+          password: form.password.trim(),
+          createdAt: new Date().toISOString(),
+        };
+
+        saveCustomer(account);
+        saveToken(token);
+        saveSession({
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          token: token,
+          createdAt: new Date().toISOString(),
+        });
+        setSuccess("Login berhasil.");
+        router.push(nextUrl);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Terjadi kesalahan.";
+        setError(message);
       }
-
-      if (form.password.trim().length < 6) {
-        setError("Password minimal 6 karakter.");
-        return;
-      }
-
-      const account: CustomerAccount = {
-        name: form.name.trim(),
-        email: form.email.trim().toLowerCase(),
-        phone: form.phone.trim(),
-        password: form.password.trim(),
-        createdAt: new Date().toISOString(),
-      };
-
-      saveCustomer(account);
-      setSuccess("Akun customer berhasil dibuat.");
-      router.push(nextUrl);
-      return;
-    }
-
-    if (!savedCustomer) {
-      setError("Belum ada akun tersimpan. Silakan daftar terlebih dahulu.");
-      return;
-    }
-
-    const matchesEmail =
-      savedCustomer.email.toLowerCase() === form.email.trim().toLowerCase();
-    const matchesPassword = savedCustomer.password === form.password.trim();
-
-    if (!matchesEmail || !matchesPassword) {
-      setError("Email atau password tidak cocok.");
-      return;
-    }
-
-    saveSession({
-      email: savedCustomer.email,
-      name: savedCustomer.name,
-      createdAt: new Date().toISOString(),
-    });
-
-    setSuccess("Login berhasil.");
-    router.push(nextUrl);
+    })();
   }
 
   return (

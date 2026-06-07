@@ -1,0 +1,147 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { requireAuth } from '@/lib/api-auth';
+import { decimalToNumber } from '@/lib/api-serializers';
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { orderId: string } }
+) {
+  try {
+    const auth = await requireAuth(req, ['FARMER']);
+    if (!auth.user) return NextResponse.json({ error: auth.error }, { status: auth.status });
+    const user = auth.user;
+
+    const { orderId } = params;
+    const body = await req.json();
+    const { status, message } = body;
+
+    // Valid statuses
+    const validStatuses = ['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
+    if (!validStatuses.includes(status)) {
+      return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
+    }
+
+    // Verify order belongs to farmer
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+    });
+
+    if (!order) {
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    }
+
+    if (order.farmerId !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // Update order status
+    const updated = await prisma.order.update({
+      where: { id: orderId },
+      data: { status: status as 'PENDING' | 'CONFIRMED' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' },
+      include: {
+        customer: {
+          select: { name: true, email: true },
+        },
+        items: {
+          include: {
+            product: true,
+          },
+        },
+      },
+    });
+
+    // Add message if provided
+    if (message) {
+      await prisma.orderMessage.create({
+        data: {
+          orderId,
+          sender: 'FARMER',
+          message,
+        },
+      });
+    }
+
+    return NextResponse.json({
+      ok: true,
+      data: {
+        id: updated.id,
+        status: updated.status,
+        message: message ? 'Status updated and message sent' : 'Status updated',
+        subtotal: decimalToNumber(updated.subtotal),
+        total: decimalToNumber(updated.total),
+      },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to update order';
+    console.error('Update order error:', error);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+// GET single order
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { orderId: string } }
+) {
+  try {
+    const auth = await requireAuth(req, ['FARMER']);
+    if (!auth.user) return NextResponse.json({ error: auth.error }, { status: auth.status });
+    const user = auth.user;
+
+    const { orderId } = params;
+
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        customer: true,
+        items: {
+          include: { product: true },
+        },
+        payment: true,
+        messages: {
+          orderBy: { createdAt: 'desc' },
+        },
+        trackingPoints: {
+          orderBy: { recordedAt: 'desc' },
+        },
+        logisticsVehicle: true,
+      },
+    });
+
+    if (!order) {
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    }
+
+    if (order.farmerId !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const data = {
+      ...order,
+      subtotal: decimalToNumber(order.subtotal),
+      logisticsCost: decimalToNumber(order.logisticsCost),
+      total: decimalToNumber(order.total),
+      items: order.items.map((item) => ({
+        ...item,
+        unitPrice: decimalToNumber(item.unitPrice),
+        subtotal: decimalToNumber(item.subtotal),
+      })),
+      logisticsVehicle: order.logisticsVehicle
+        ? {
+            ...order.logisticsVehicle,
+            capacityTon: decimalToNumber(order.logisticsVehicle.capacityTon),
+            price: decimalToNumber(order.logisticsVehicle.price),
+          }
+        : null,
+    };
+
+    return NextResponse.json({
+      ok: true,
+      data,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch order';
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}

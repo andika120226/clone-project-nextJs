@@ -1,6 +1,6 @@
 'use client';
 
-import { generateSixDigitCode } from '@/lib/order-receipt';
+import { generateUniqueCode } from '@/lib/order-receipt';
 
 interface OrderItemDisplay {
   product: {
@@ -45,7 +45,7 @@ export function Invoice({
   paymentStatus,
   onPrint,
 }: InvoiceProps) {
-  const sixDigitCode = generateSixDigitCode(trackingId);
+  const sixDigitCode = generateUniqueCode(trackingId);
   const discountAmount = (subtotal * discountPercentage) / 100;
   const subtotalAfterDiscount = subtotal - discountAmount;
 

@@ -5,14 +5,13 @@ import {
   ChevronLeft,
   Leaf,
   MapPin,
-  MessageCircleMore,
   TriangleAlert,
 } from "lucide-react";
 import { DATA_TANI } from "@/lib/data-dummy";
 import BuyNowButton from "@/components/customer/BuyNowButton";
 
 type DetailPageProps = {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 };
 
 function formatTanggal(value: string) {
@@ -23,8 +22,8 @@ function formatTanggal(value: string) {
   });
 }
 
-export default async function DetailKatalogPage({ params }: DetailPageProps) {
-  const { id } = await params;
+export default function DetailKatalogPage({ params }: DetailPageProps) {
+  const { id } = params;
   const produk = DATA_TANI.find((item) => item.id === id);
 
   if (!produk) {
@@ -100,13 +99,7 @@ export default async function DetailKatalogPage({ params }: DetailPageProps) {
               >
                 Lihat Profile Customer
               </Link>
-              <Link
-                href="/katalog-tani/id/chat"
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-500 px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-400"
-              >
-                <MessageCircleMore className="h-4 w-4" />
-                Hubungi via Forum Chat
-              </Link>
+
             </div>
           </div>
         </article>

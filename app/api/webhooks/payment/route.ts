@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const {
       order_id: orderId,
-      status_code: statusCode,
+      status_code: statusCode, 
       gross_amount: grossAmount,
       signature_key: signatureKey,
       transaction_status: transactionStatus,

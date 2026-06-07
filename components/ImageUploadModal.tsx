@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import { isImageFileExtensionAllowed, isImageMimeAllowed } from "@/lib/admin-store";
 
 interface ImageUploadModalProps {
@@ -110,11 +109,10 @@ export default function ImageUploadModal({
           {/* Image Preview */}
           {preview && (
             <div className="mt-4 overflow-hidden rounded-xl border border-cyan-100 bg-slate-50">
-              <Image
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
                 src={preview}
                 alt="Preview gambar"
-                width={400}
-                height={240}
                 className="h-48 w-full object-cover"
               />
             </div>

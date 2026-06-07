@@ -8,7 +8,7 @@ type Context = {
 };
 
 export async function PATCH(request: NextRequest, context: Context) {
-  const auth = await requireAuth(request, ["FARMER"]);
+  const auth = await requireAuth(request, ["ADMIN", "FARMER"]);
   if (!auth.user) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
@@ -17,10 +17,10 @@ export async function PATCH(request: NextRequest, context: Context) {
 
   try {
     const body = await request.json();
-    const stockKg = Number(body?.stockKg);
+    const stock = Number(body?.stock);
 
-    if (Number.isNaN(stockKg) || stockKg < 0) {
-      return NextResponse.json({ error: "stockKg tidak valid." }, { status: 400 });
+    if (Number.isNaN(stock) || stock < 0) {
+      return NextResponse.json({ error: "stock tidak valid." }, { status: 400 });
     }
 
     const product = await prisma.product.findFirst({
@@ -36,14 +36,20 @@ export async function PATCH(request: NextRequest, context: Context) {
 
     const updated = await prisma.product.update({
       where: { id },
-      data: { stockKg },
+      data: { stock },
     });
 
     return NextResponse.json({
       ok: true,
       data: {
-        ...updated,
-        pricePerKg: decimalToNumber(updated.pricePerKg),
+        id: updated.id,
+        name: updated.name,
+        description: updated.description,
+        image: updated.image,
+        stock: decimalToNumber(updated.stock),
+        price: decimalToNumber(updated.price),
+        farmerId: updated.farmerId,
+        updatedAt: updated.updatedAt,
       },
     });
   } catch (error) {

@@ -9,7 +9,7 @@ const detailItems = [
     title: "Transparansi Stok Dari Lahan ke Gudang",
     description:
       "Setiap petani mitra di Lampung dapat mengunggah kapasitas panen aktual, tanggal siap kirim, dan foto kondisi komoditas. Distributor mendapat visibilitas penuh untuk merencanakan pembelian tanpa menunggu laporan manual.",
-    image: "/detail-stok.jpg",
+    image: "/detail-stok_webP.webp",
     alt: "Pantauan stok panen petani Lampung",
     Icon: ScanLine,
     reverse: false,
@@ -18,7 +18,7 @@ const detailItems = [
     title: "Kualitas Terstandar Untuk Pasar Besar",
     description:
       "InfoTani membantu proses grading kualitas dengan parameter sederhana namun konsisten. Hasilnya, pembeli bisa memfilter produk berdasarkan standar yang dibutuhkan, sementara petani mendapatkan harga yang lebih adil.",
-    image: "/detail-kualitas.jpg",
+    image: "/detail-kualitas.webp",
     alt: "Validasi kualitas komoditas pertanian",
     Icon: ShieldCheck,
     reverse: true,
@@ -42,8 +42,7 @@ export default function DetailSection() {
             </h3>
             <p className="leading-relaxed text-zinc-600">{description}</p>
             <p className="text-sm text-zinc-500">
-              Data sample wilayah: Metro, Pringsewu, Lampung Selatan, dan
-              Lampung Timur.
+              Data sample wilayah: Dari sabang sampai marauke, info tani sudah menjangkau petani di seluruh indonesia, dengan fokus utama di sentra produksi seperti Lampung, Jawa Tengah, dan Sumatera Utara. Kami terus memperluas jaringan untuk memastikan setiap petani memiliki akses ke platform kami.
             </p>
           </div>
 
@@ -52,7 +51,7 @@ export default function DetailSection() {
               reverse ? "lg:order-1" : "lg:order-2"
             }`}
           >
-            <Image src={image} alt={alt} fill className="object-cover" />
+            <Image src={image} alt={alt} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 50vw" />
           </div>
         </article>
       ))}

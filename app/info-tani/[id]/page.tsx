@@ -1,21 +1,38 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useParams } from "next/navigation";
-import { ChevronLeft, Warehouse } from "lucide-react";
-import { DATA_TANI } from "@/lib/data-dummy";
+import { ChevronLeft, MapPin, Warehouse } from "lucide-react";
 import {
   getAdminAccountByCatalogId,
-  getFarmerProfile,
-  getPriceByProductName,
   getTenantCatalog,
-  getTenantProducts,
 } from "@/lib/admin-store";
 import DetailInteractivePanel from "@/components/info_tani/DetailInteractivePanel";
 import ProfileSection from "@/components/info_tani/ProfileSection";
 import StockDashboard from "@/components/info_tani/StockDashboard";
+import { buildGoogleMapsFallbackUrl, normalizeGoogleMapsEmbedUrl } from "@/lib/google-maps";
+
+type RemoteProfile = {
+  farmerName: string;
+  profilePhoto: string | null;
+  catalogBanner: string | null;
+  description: string | null;
+  catalogMapUrl: string | null;
+  latitude: number;
+  longitude: number;
+  bankName?: string | null;
+  accountNumber?: string | null;
+};
+
+type RemoteProduct = {
+  id: string;
+  name: string;
+  pricePerKg: number;
+  stockKg: number;
+  imageUrl: string;
+  stockStatus: "Ready" | "Menipis";
+};
 
 function unitPriceByProduct(productName: string) {
   const lower = productName.toLowerCase();
@@ -52,11 +69,6 @@ function resolveSlotId(rawId: string) {
     return numericId;
   }
 
-  const legacyIndex = DATA_TANI.findIndex((item) => item.id === rawId);
-  if (legacyIndex >= 0) {
-    return legacyIndex + 1;
-  }
-
   return null;
 }
 
@@ -72,8 +84,11 @@ export default function InfoTaniDetailPage() {
   const params = useParams<{ id: string }>();
   const rawId = params?.id ?? "";
   const isHydrated = useIsHydrated();
+  const [remoteProfile, setRemoteProfile] = useState<RemoteProfile | null>(null);
+  const [remoteProducts, setRemoteProducts] = useState<RemoteProduct[]>([]);
+  const [customerCoords, setCustomerCoords] = useState<{ latitude: number; longitude: number } | null>(null);
 
-  const viewModel = useMemo(() => {
+  const viewModel = (() => {
     const slotId = resolveSlotId(rawId);
     if (!slotId) {
       return null;
@@ -81,34 +96,42 @@ export default function InfoTaniDetailPage() {
 
     const catalog = getTenantCatalog(slotId);
     const account = isHydrated ? getAdminAccountByCatalogId(slotId) : null;
-    const profile = account ? getFarmerProfile(account.tenantId) : null;
-    const products = account ? getTenantProducts(account.tenantId) : [];
+    const profile = remoteProfile;
+    const products = remoteProducts;
     const primaryProduct = products[0] ?? null;
-    const legacyProduct = DATA_TANI.find((item) => item.id === rawId) ?? null;
 
-    const farmerName = profile?.farmerName || account?.name || legacyProduct?.nama_petani || catalog.name;
-    const productName = primaryProduct?.name || legacyProduct?.nama_produk || "Produk belum diatur";
-    const unitPrice = primaryProduct?.pricePerKg || getPriceByProductName(productName) || unitPriceByProduct(productName);
-    const bankName = bankNames[(slotId - 1) % bankNames.length];
-    const accountNumber = getAccountNumber(`${catalog.code}-${farmerName}-${productName}`);
-    const profilePhoto = profile?.profilePhoto || legacyProduct?.foto_profil || "";
-    const bannerImage = profile?.catalogBanner || legacyProduct?.gambar_banner || primaryProduct?.imageUrl || "";
-    const productImage = primaryProduct?.imageUrl || legacyProduct?.gambar_produk || "";
-    const location = profile?.latitude && profile?.longitude
+    const farmerName = profile?.farmerName || catalog.name;
+    const productName = primaryProduct?.name || "Produk belum diatur";
+    const unitPrice = primaryProduct?.pricePerKg ?? unitPriceByProduct(productName);
+    const bankName = profile?.bankName?.trim() || bankNames[(slotId - 1) % bankNames.length];
+    const accountNumber = profile?.accountNumber?.trim() || getAccountNumber(`${catalog.code}-${farmerName}-${productName}`);
+    const profilePhoto = profile?.profilePhoto || "";
+    const bannerImage = profile?.catalogBanner || primaryProduct?.imageUrl || "";
+    const productImage = primaryProduct?.imageUrl || "";
+    const mapUrl =
+      normalizeGoogleMapsEmbedUrl(
+        profile?.catalogMapUrl,
+      ) ||
+      buildGoogleMapsFallbackUrl(
+        profile?.latitude ?? -5.429,
+        profile?.longitude ?? 105.262,
+      );
+    const location = profile && profile.latitude && profile.longitude
       ? `Koordinat ${profile.latitude.toFixed(4)}, ${profile.longitude.toFixed(4)}`
-      : legacyProduct?.lokasi || catalog.region;
+      : catalog.region;
     const stockItems = products.map((product, index) => ({
       id: product.id,
       nama_komoditas: product.name || `Produk ${index + 1}`,
       stok_kg: product.stockKg,
       satuan: "kg",
       harga_per_unit: product.pricePerKg || unitPriceByProduct(product.name || productName),
-      status:
+      status: (
         product.stockStatus === "Ready"
           ? "siap"
           : product.stockKg <= 0
             ? "habis"
-            : "menipis",
+            : "menipis"
+      ) as "habis" | "menipis" | "siap",
       gambar: product.imageUrl || "",
     }));
 
@@ -120,15 +143,9 @@ export default function InfoTaniDetailPage() {
           stockKg: product.stockKg,
           imageUrl: product.imageUrl || "",
         }))
-      : [{
-          id: primaryProduct?.id ?? legacyProduct?.id ?? rawId,
-          name: productName,
-          unitPrice,
-          stockKg: legacyProduct?.stok ?? 0,
-          imageUrl: productImage,
-        }];
+      : [];
 
-    const productId = primaryProduct?.id ?? legacyProduct?.id ?? rawId;
+    const productId = primaryProduct?.id ?? rawId;
     const tenantId = account?.tenantId ?? `tenant-${slotId}`;
 
     return {
@@ -142,13 +159,100 @@ export default function InfoTaniDetailPage() {
       profilePhoto,
       bannerImage,
       productImage,
+      mapUrl,
       location,
       stockItems,
       productId,
       tenantId,
       checkoutProducts,
     };
+  })();
+
+  useEffect(() => {
+    const slotId = resolveSlotId(rawId);
+    if (!isHydrated || !slotId) {
+      return;
+    }
+
+    const account = getAdminAccountByCatalogId(slotId);
+    if (!account) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const [profileResponse, productsResponse] = await Promise.all([
+          fetch("/api/admin/profile", {
+            headers: { "x-farmer-id": account.tenantId },
+          }),
+          fetch(`/api/admin/products?tenantId=${account.tenantId}`, {
+            headers: { "x-farmer-id": account.tenantId },
+          }),
+        ]);
+
+        const profilePayload = profileResponse.ok ? await profileResponse.json() : null;
+        const productsPayload = productsResponse.ok ? await productsResponse.json() : null;
+
+        if (cancelled) {
+          return;
+        }
+
+        setRemoteProfile(profilePayload?.data ?? null);
+        setRemoteProducts(Array.isArray(productsPayload?.data) ? productsPayload.data : []);
+      } catch {
+        if (!cancelled) {
+          setRemoteProfile(null);
+          setRemoteProducts([]);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [isHydrated, rawId]);
+
+  // Request customer current browser coordinates
+  useEffect(() => {
+    if (typeof window === "undefined" || !navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setCustomerCoords({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+      },
+      (error) => {
+        console.log("Customer GPS denied/unavailable:", error.message);
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  }, []);
+
+  // Compute straight-line Haversine distance from customer current location to farmer land
+  const distanceKm = (() => {
+    if (!customerCoords || !remoteProfile) return null;
+    const lat1 = customerCoords.latitude;
+    const lon1 = customerCoords.longitude;
+    const lat2 = remoteProfile.latitude;
+    const lon2 = remoteProfile.longitude;
+
+    if (lat2 === 0 && lon2 === 0) return null; // Skip if farmer coordinate is default 0,0
+
+    const R = 6371; // Earth radius in km
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  })();
 
   if (!viewModel) {
     return (
@@ -179,6 +283,7 @@ export default function InfoTaniDetailPage() {
     profilePhoto,
     bannerImage,
     productImage,
+    mapUrl,
     location,
     stockItems,
     productId,
@@ -228,32 +333,72 @@ export default function InfoTaniDetailPage() {
           <section className="rounded-3xl border border-cyan-200 bg-white p-5 shadow-sm sm:p-6">
             <div className="mb-3 flex items-center gap-2 text-slate-900">
               <Warehouse className="h-5 w-5 text-cyan-700" />
-              <h2 className="text-lg font-semibold">Ringkasan Katalog</h2>
+              <h2 className="text-lg font-semibold">Deskripsi Katalog</h2>
             </div>
             <p className="text-sm text-slate-600">
-              Bagian ini mengikuti data tenant yang tersimpan, sehingga perubahan di dashboard langsung tercermin di katalog publik.
+              {remoteProfile?.description?.trim() || "Admin belum mengisi deskripsi katalog ini."}
             </p>
 
-            <div className="mt-4 overflow-hidden rounded-2xl border border-cyan-100 bg-slate-100">
-              {productImage ? (
-                <Image
-                  src={productImage}
-                  alt={productName}
-                  width={1200}
-                  height={720}
-                  className="h-72 w-full object-cover"
-                />
-              ) : (
-                <div className="flex h-72 w-full items-center justify-center bg-linear-to-br from-cyan-50 to-white text-sm font-semibold text-slate-500">
-                  Gambar produk belum diatur
-                </div>
-              )}
+            <div className="mt-4 grid gap-3 rounded-2xl border border-cyan-100 bg-cyan-50 p-4 text-sm text-slate-700 sm:grid-cols-2">
+              <div>
+                <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Jumlah produk</p>
+                <p className="mt-1 text-lg font-semibold text-slate-900">{remoteProducts.length} item</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Status katalog</p>
+                <p className="mt-1 text-lg font-semibold text-slate-900">
+                  {remoteProducts.length > 0 ? "Siap untuk pembayaran" : "Belum ada produk"}
+                </p>
+              </div>
             </div>
             <p className="mt-3 text-xs text-slate-500">
-              Slot katalog {catalog.code} siap diisi dari menu produk dan profil admin.
+              Slot katalog {catalog.code} mengikuti data admin yang tersimpan di dashboard.
             </p>
           </section>
         </div>
+
+        <section className="overflow-hidden rounded-3xl border border-cyan-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="mb-3 flex items-center gap-2 text-slate-900">
+            <MapPin className="h-5 w-5 text-cyan-700" />
+            <h2 className="text-lg font-semibold">Lokasi Google Maps</h2>
+          </div>
+          <p className="text-sm text-slate-600">
+            Peta ini mengikuti URL yang disimpan di profil admin.
+          </p>
+          {distanceKm !== null && (
+            <div className="mt-3 rounded-2xl bg-indigo-50 border border-indigo-100 p-3 text-sm text-indigo-900 flex items-center gap-2 font-medium">
+              <span>📍</span>
+              <span>Estimasi jarak dari lokasi Anda: <strong>{distanceKm.toFixed(1)} km</strong></span>
+            </div>
+          )}
+          <div className="mt-4 overflow-hidden rounded-2xl border border-cyan-100 bg-slate-100">
+            <iframe
+              title="Lokasi Google Maps"
+              src={mapUrl}
+              className="h-72 w-full"
+              loading="lazy"
+            />
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <a
+              href={remoteProfile?.catalogMapUrl || mapUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-xl bg-cyan-600 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-cyan-700 shadow-sm"
+            >
+              🚗 Buka di Google Maps
+            </a>
+            <a
+              href={`https://www.google.com/maps/dir/?api=1&destination=${remoteProfile?.latitude ?? -5.429},${remoteProfile?.longitude ?? 105.262}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-indigo-700 shadow-sm"
+            >
+              📍 Petunjuk Arah
+            </a>
+          </div>
+        </section>
 
         <DetailInteractivePanel
           key={`${catalog.code}-${checkoutProducts.map((item) => item.id).join("_")}`}
@@ -268,6 +413,8 @@ export default function InfoTaniDetailPage() {
           catalogCode={catalog.code}
           productImage={productImage}
           availableProducts={checkoutProducts}
+          farmerLatitude={remoteProfile?.latitude ?? undefined}
+          farmerLongitude={remoteProfile?.longitude ?? undefined}
         />
 
         <div>

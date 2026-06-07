@@ -1,0 +1,173 @@
+info_tani/
+├── app/
+│   ├── page.tsx                               <-- Home page (landing)
+│   ├── layout.tsx                             <-- Global layout (navbar/footer)
+│   ├── globals.css                            <-- Global styles
+│   ├── favicon.ico
+│   ├── admin/
+│   │   ├── page.tsx                           <-- Admin dashboard
+│   │   ├── layout.tsx                         <-- Admin layout
+│   │   ├── login/
+│   │   │   └── page.tsx
+│   │   ├── profile/
+│   │   │   └── page.tsx
+│   │   ├── products/
+│   │   │   └── page.tsx
+│   │   ├── orders/
+│   │   │   └── page.tsx
+│   │   ├── monitoring/
+│   │   │   └── page.tsx
+│   │   ├── history/
+│   │   │   └── page.tsx
+│   ├── api/
+│   │   ├── admin/
+│   │   │   ├── orders/
+│   │   │   │   ├── route.ts
+│   │   │   │   ├── [id]/route.ts
+│   │   │   │   └── [orderId]/route.ts
+│   │   │   └── products/
+│   │   │       ├── route.ts
+│   │   │       └── [productId]/route.ts
+│   │   ├── auth/
+│   │   │   ├── login/route.ts
+│   │   │   └── signup/route.ts
+│   │   ├── farmer/
+│   │   │   └── products/
+│   │   │       └── [id]/stock/route.ts
+│   │   ├── products/
+│   │   │   ├── route.ts
+│   │   │   ├── [productId]/
+│   │   │   │   ├── pricing/route.ts
+│   │   │   │   └── images/route.ts
+│   │   ├── orders/
+│   │   │   ├── route.ts
+│   │   │   ├── create/route.ts
+│   │   │   └── [orderId]/payment/route.ts
+│   │   ├── profile/
+│   │   │   ├── route.ts
+│   │   │   ├── addresses/
+│   │   │   │   ├── route.ts
+│   │   │   │   └── [id]/route.ts
+│   │   │   └── banks/
+│   │   │       ├── route.ts
+│   │   │       └── [id]/route.ts
+│   │   ├── tracking/
+│   │   │   ├── [orderId]/route.ts
+│   │   │   └── [trackingId]/route.ts
+│   │   ├── payments/route.ts
+│   │   ├── hubungi-kami/route.ts
+│   │   ├── logistics/route.ts
+│   │   └── webhooks/
+│   │       └── payment/route.ts
+│   ├── auth/
+│   │   ├── login/
+│   │   │   └── page.tsx
+│   │   └── signup/
+│   │       └── page.tsx
+│   ├── katalog-tani/
+│   │   ├── page.tsx
+│   │   └── [id]/
+│   │       └── page.tsx
+│   ├── info-tani/
+│   │   ├── page.tsx
+│   │   └── [id]/
+│   │       └── page.tsx
+│   ├── info-terkini/
+│   │   ├── page.tsx
+│   │   └── monitoring/
+│   │       └── page.tsx
+│   ├── checkout/
+│   │   └── page.tsx
+│   ├── cta/
+│   │   └── page.tsx
+│   ├── hubungi-kami/
+│   │   └── page.tsx
+│   ├── profile/
+│   │   └── page.tsx
+│   └── real_time/
+│       └── monitoring/
+│
+├── components/
+│   ├── Navbar.tsx                             <-- Main navigation
+│   ├── Footer.tsx                             <-- Footer
+│   ├── ProductCard.tsx
+│   ├── ProductManager.tsx
+│   ├── AdminOrdersDashboard.tsx
+│   ├── PaymentWidget.tsx
+│   ├── Invoice.tsx
+│   ├── StatusBadge.tsx
+│   ├── ImageUploadModal.tsx
+│   ├── admin/
+│   │   ├── AdminLayoutShell.tsx
+│   │   ├── AdminSidebar.tsx
+│   │   └── useAdminTenant.ts                 <-- Hook untuk admin tenant
+│   ├── customer/
+│   │   ├── BuyNowButton.tsx
+│   │   ├── CheckoutFlow.tsx
+│   │   ├── CustomerAuthForm.tsx
+│   │   └── CustomerProfileDashboard.tsx
+│   ├── home/
+│   │   ├── HomeNavbar.tsx                    <-- Custom navbar untuk home
+│   │   ├── HeroSection.tsx
+│   │   ├── OverviewSection.tsx
+│   │   ├── DetailSection.tsx
+│   │   ├── FooterSection.tsx
+│   │   └── ModernLandingEnhancements.tsx
+│   ├── info_tani/
+│   │   ├── DetailInteractivePanel.tsx
+│   │   ├── ProfileSection.tsx
+│   │   └── StockDashboard.tsx
+│   └── info_terkini/
+│       └── SupplyTable.tsx
+│
+├── lib/
+│   ├── admin-store.ts                        <-- Admin state management
+│   ├── customer-store.ts                     <-- Customer state management
+│   ├── api-client.ts                         <-- API client instance
+│   ├── api-auth.ts                           <-- Auth API utilities
+│   ├── api-hooks.ts                          <-- Custom React hooks untuk API
+│   ├── api-serializers.ts                    <-- Data serializers
+│   ├── auth.ts                               <-- Auth logic
+│   ├── prisma.ts                             <-- Prisma client
+│   ├── midtrans.ts                           <-- Midtrans payment integration
+│   ├── logistics-analyzer.ts                 <-- Logistics analysis
+│   ├── order-receipt.ts                      <-- Receipt generation
+│   ├── stock-data.ts                         <-- Stock data utilities
+│   ├── supply-data.ts                        <-- Supply data utilities
+│   └── data-dummy.ts / dataDummy.ts / data_dummy.ts
+│
+├── prisma/
+│   ├── schema.prisma                         <-- Database schema
+│   ├── seed.ts                               <-- Database seeding
+│   ├── seed.js
+│   └── migrations/
+│       ├── migration_lock.toml
+│       ├── 20260515051405_init_infotani_core/
+│       ├── 20260515053809_add_logistics_vehicle_unique_name/
+│       ├── 20260515090714_add_order_delivery_discount_fields/
+│       ├── 20260515092719_add_payment_images_messages/
+│       └── 20260516125012_init_lokal_baru/
+│
+├── public/
+│   ├── gambar1.webp
+│   ├── gambar2.webp
+│   ├── ... (45+ image files)
+│   └── [assets dan resource statis lainnya]
+│
+├── docs/
+│   └── Apidog-InfoTani-Collection.json       <-- API documentation
+│
+├── package.json                              <-- Dependencies & scripts
+├── package-lock.json
+├── tsconfig.json                             <-- TypeScript config
+├── next.config.ts                            <-- Next.js config
+├── eslint.config.mjs                         <-- ESLint config
+├── postcss.config.mjs                        <-- PostCSS config
+├── .gitignore
+├── README.md                                 <-- Project documentation
+├── AGENTS.md
+├── CLAUDE.md
+├── CODE_STRUCTURE.md
+├── CLEANUP_GUIDE.md
+├── PAYMENT_IMPLEMENTATION.md
+└── next-env.d.ts                             <-- Next.js environment types

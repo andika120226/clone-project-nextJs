@@ -108,6 +108,8 @@ export function ProductManager({
             accept=".jpg,.jpeg,.png,.webp"
             onChange={handleFileSelect}
             className="hidden"
+            title="Pilih file gambar produk"
+            aria-label="File input gambar produk"
           />
           <button
             onClick={() => fileInputRef.current?.click()}

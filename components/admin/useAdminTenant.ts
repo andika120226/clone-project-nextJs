@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   AdminAccount,
   AdminCatalog,
@@ -16,22 +17,37 @@ export type AdminTenantContext = {
   catalog: AdminCatalog | null;
 };
 
-export function useAdminTenant() {
-  const value = ensureAdminSession();
-  if (!value) {
-    clearAdminSession();
-    return {
-      ready: true,
-      session: null,
-      account: null,
-      catalog: null,
-    } satisfies AdminTenantContext;
-  }
+const initialContext: AdminTenantContext = {
+  ready: false,
+  session: null,
+  account: null,
+  catalog: null,
+};
 
-  return {
-    ready: true,
-    session: value.session,
-    account: value.account,
-    catalog: getTenantCatalog(value.session.assignedCatalogId),
-  } satisfies AdminTenantContext;
+export function useAdminTenant() {
+  const [context, setContext] = useState<AdminTenantContext>(initialContext);
+
+  useEffect(() => {
+    const value = ensureAdminSession();
+    if (!value) {
+      clearAdminSession();
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setContext({
+        ready: true,
+        session: null,
+        account: null,
+        catalog: null,
+      });
+      return;
+    }
+
+    setContext({
+      ready: true,
+      session: value.session,
+      account: value.account,
+      catalog: getTenantCatalog(value.session.assignedCatalogId),
+    });
+  }, []);
+
+  return context;
 }

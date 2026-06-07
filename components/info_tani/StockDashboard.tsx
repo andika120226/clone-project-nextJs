@@ -111,6 +111,8 @@ export default function StockDashboard({ items }: StockDashboardProps) {
                           alt={item.nama_komoditas}
                           fill
                           className="object-cover"
+                          sizes="(max-width: 768px) 80px, 120px"
+                          unoptimized={item.gambar?.startsWith("data:")}
                         />
                       </div>
 

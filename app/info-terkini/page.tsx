@@ -34,7 +34,7 @@ const newsFeed = [
     date: "17 Agustus 2025",
     description:
       "Program monitoring pasokan mempercepat validasi stok sayuran dari sentra produksi ke jaringan pasar modern dan tradisional.",
-    image: "/govertment.jpg",
+    image: "/govertment.webp",
   },
   {
     title: "Laporan Panen Buah Lokal Lampung Tercatat Naik pada Minggu Ini",
@@ -42,7 +42,7 @@ const newsFeed = [
     date: "September 2025",
     description:
       "Tim lapangan mencatat peningkatan volume buah lokal seperti pisang dan pepaya dari 11 wilayah aktif di Bandar Lampung.",
-    image: "/govertment2.jpg",
+    image: "/govertment2.webp",
   },
   {
     title:
@@ -51,7 +51,7 @@ const newsFeed = [
     date: "Oktober 2025",
     description:
       "Dashboard transparansi membantu pemerintah meninjau stok beras, umbi, dan komoditas dapur secara cepat dan terukur.",
-    image: "/govertment4.jpg",
+    image: "/govertment4.webp",
   },
 ];
 
@@ -78,7 +78,7 @@ export default function InfoTerkiniPage() {
 
             <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-sm">
               <Image
-                src="/govertment5.jpg"
+                src="/govertment5.webp"
                 alt="Official government transparency visual"
                 width={520}
                 height={220}
@@ -116,7 +116,7 @@ export default function InfoTerkiniPage() {
         <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
           <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
             <Image
-              src="/govertment3.jpg"
+              src="/govetment3.webp"
               alt="Official agriculture update"
               width={1200}
               height={760}

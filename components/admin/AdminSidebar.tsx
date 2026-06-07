@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { clearAdminSession } from "@/lib/admin-store";
@@ -18,6 +19,12 @@ export default function AdminSidebar() {
   const router = useRouter();
   const path = usePathname() || "/admin";
   const { session, catalog } = useAdminTenant();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
 
   if (path === "/admin/login") {
     return null;
@@ -34,9 +41,9 @@ export default function AdminSidebar() {
         <h3 className="text-xs font-semibold uppercase tracking-wide text-cyan-700">Pusat Kendali</h3>
         <p className="text-sm text-slate-700">Admin Petani InfoTani</p>
         <div className="mt-3 rounded-2xl border border-cyan-200 bg-cyan-50/70 p-3 text-xs text-slate-600">
-          <p className="font-semibold text-slate-700">{session?.name ?? "Admin"}</p>
-          <p className="mt-1">{catalog?.code} - {catalog?.name}</p>
-          <p>{catalog?.region}</p>
+          <p className="font-semibold text-slate-700">{mounted ? (session?.name ?? "Admin") : ""}</p>
+          <p className="mt-1">{mounted ? `${catalog?.code} - ${catalog?.name}` : ""}</p>
+          <p>{mounted ? catalog?.region : ""}</p>
         </div>
       </div>
 

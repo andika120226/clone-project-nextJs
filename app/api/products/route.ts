@@ -37,14 +37,23 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     ok: true,
     data: products.map((product) => ({
-      ...product,
-      pricePerKg: decimalToNumber(product.pricePerKg),
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      image: product.image,
+      stock: decimalToNumber(product.stock),
+      price: decimalToNumber(product.price),
+      farmer: product.farmer,
+      createdAt: product.createdAt,
+      updatedAt: product.updatedAt,
+      isActive: product.isActive,
+      status: product.status,
     })),
   });
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth(request, ["FARMER"]);
+  const auth = await requireAuth(request, ["ADMIN", "FARMER"]);
   if (!auth.user) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
@@ -53,20 +62,20 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const name = String(body?.name || "").trim();
     const description = body?.description ? String(body.description).trim() : null;
-    const imageUrl = body?.imageUrl ? String(body.imageUrl).trim() : null;
-    const stockKg = Number(body?.stockKg ?? 0);
-    const pricePerKg = Number(body?.pricePerKg ?? 0);
+    const image = body?.image ? String(body.image).trim() : null;
+    const stock = Number(body?.stock ?? 0);
+    const price = Number(body?.price ?? 0);
 
     if (!name) {
       return NextResponse.json({ error: "Nama produk wajib diisi." }, { status: 400 });
     }
 
-    if (stockKg < 0 || Number.isNaN(stockKg)) {
-      return NextResponse.json({ error: "stockKg tidak valid." }, { status: 400 });
+    if (stock < 0 || Number.isNaN(stock)) {
+      return NextResponse.json({ error: "stock tidak valid." }, { status: 400 });
     }
 
-    if (pricePerKg <= 0 || Number.isNaN(pricePerKg)) {
-      return NextResponse.json({ error: "pricePerKg harus lebih dari 0." }, { status: 400 });
+    if (price <= 0 || Number.isNaN(price)) {
+      return NextResponse.json({ error: "price harus lebih dari 0." }, { status: 400 });
     }
 
     const created = await prisma.product.create({
@@ -74,17 +83,24 @@ export async function POST(request: NextRequest) {
         farmerId: auth.user.id,
         name,
         description,
-        imageUrl,
-        stockKg,
-        pricePerKg,
+        image,
+        stock,
+        price,
       },
     });
 
     return NextResponse.json({
       ok: true,
       data: {
-        ...created,
-        pricePerKg: decimalToNumber(created.pricePerKg),
+        id: created.id,
+        name: created.name,
+        description: created.description,
+        image: created.image,
+        stock: decimalToNumber(created.stock),
+        price: decimalToNumber(created.price),
+        farmerId: created.farmerId,
+        createdAt: created.createdAt,
+        updatedAt: created.updatedAt,
       },
     }, { status: 201 });
   } catch (error) {

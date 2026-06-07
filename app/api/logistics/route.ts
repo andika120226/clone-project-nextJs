@@ -20,7 +20,7 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth(request, ["FARMER"]);
+  const auth = await requireAuth(request, ["ADMIN", "FARMER"]);
   if (!auth.user) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }

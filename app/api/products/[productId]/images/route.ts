@@ -3,10 +3,10 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { productId: string } }
+  context: { params: Promise<{ productId: string }> }
 ) {
   try {
-    const { productId } = params;
+    const { productId } = await context.params;
     const formData = await req.formData();
     const file = formData.get("image") as File;
 
@@ -49,17 +49,19 @@ export async function POST(
       },
     });
 
-    // Update product imageUrl field
+    // Update product image field
     await prisma.product.update({
       where: { id: productId },
-      data: { imageUrl: dataUrl },
+      data: { image: dataUrl },
     });
 
     return NextResponse.json(
       {
-        success: true,
-        imageId: productImage.id,
-        imageUrl: dataUrl,
+        ok: true,
+        data: {
+          imageId: productImage.id,
+          imageUrl: dataUrl,
+        },
       },
       { status: 201 }
     );
@@ -75,10 +77,10 @@ export async function POST(
 // GET existing images
 export async function GET(
   req: NextRequest,
-  { params }: { params: { productId: string } }
+  context: { params: Promise<{ productId: string }> }
 ) {
   try {
-    const { productId } = params;
+    const { productId } = await context.params;
 
     const images = await prisma.productImage.findMany({
       where: { productId },

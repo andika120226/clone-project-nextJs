@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-export type AuthRole = "CUSTOMER" | "FARMER";
+export type AuthRole = "ADMIN" | "CUSTOMER" | "FARMER";
 
 export type AuthTokenPayload = {
   sub: string;

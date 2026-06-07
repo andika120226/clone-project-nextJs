@@ -1,7 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowRight,
@@ -13,20 +14,93 @@ import {
 } from "lucide-react";
 import { DATA_TANI } from "@/lib/data-dummy";
 import {
-  createOrderId,
   formatCurrency,
   getCurrentSession,
   getPrimaryTruckLabel,
   getStoredCustomer,
+  getStoredToken,
   getTruckLocation,
   logisticsOptions,
-  paymentMethods,
   saveOrder,
   type CheckoutUnit,
   type CustomerOrder,
 } from "@/lib/customer-store";
 
+interface CustomerAddress {
+  id: string;
+  fullAddress: string;
+  isMain: boolean;
+  phoneNumber?: string;
+  label?: string;
+}
+
 type Step = 1 | 2 | 3;
+
+type PaymentGatewayCard = {
+  code: string;
+  title: string;
+  description: string;
+  image: string;
+  method: "BANK_TRANSFER" | "QRIS" | "E_WALLET";
+};
+
+const paymentGatewayCards: PaymentGatewayCard[] = [
+  {
+    code: "payment1",
+    title: "Transfer Bank",
+    description: "Pembayaran via bank transfer.",
+    image: "/payment1.webp",
+    method: "BANK_TRANSFER",
+  },
+  {
+    code: "payment2",
+    title: "Transfer Bank 1",
+    description: "Metode transfer bank tambahan.",
+    image: "/payment2.webp",
+    method: "BANK_TRANSFER",
+  },
+  {
+    code: "payment3",
+    title: "Transfer Bank 2",
+    description: "Pembayaran cepat dengan QR.",
+    image: "/payment3.webp",
+    method: "BANK_TRANSFER",
+  },
+  {
+    code: "payment4",
+    title: "QRIS 2",
+    description: "Pilihan QR alternatif.",
+    image: "/payment4.webp",
+    method: "BANK_TRANSFER",
+  },
+  {
+    code: "payment5",
+    title: "E-Wallet 1",
+    description: "Pembayaran digital otomatis.",
+    image: "/payment5.webp",
+    method: "BANK_TRANSFER",
+  },
+  {
+    code: "payment6",
+    title: "E-Wallet 2",
+    description: "Pilihan dompet digital alternatif.",
+    image: "/payment6.webp",
+    method: "BANK_TRANSFER",
+  },
+  {
+    code: "payment7",
+    title: "E-Wallet 3",
+    description: "Gateway pembayaran digital tambahan.",
+    image: "/payment7.webp",
+    method: "BANK_TRANSFER",
+  },
+];
+
+const paymentMethodLabels: Record<PaymentGatewayCard["method"], string> = {
+  BANK_TRANSFER: "Transfer Bank",
+  QRIS: "QRIS",
+  E_WALLET: "E-Wallet",
+};
 
 const stepMotion = {
   hidden: { opacity: 0, y: 20 },
@@ -65,15 +139,61 @@ export default function CheckoutFlow() {
   const product = DATA_TANI.find((item) => item.id === productId) ?? DATA_TANI[0];
   const session = getCurrentSession();
   const account = getStoredCustomer();
+  const customerToken = session?.token || getStoredToken();
 
   const [step, setStep] = useState<Step>(1);
   const [address, setAddress] = useState("");
+  const [dbAddresses, setDbAddresses] = useState<CustomerAddress[]>([]);
+  const [addressId, setAddressId] = useState<string | null>(null);
+  const [bankAccountId, setBankAccountId] = useState<string | null>(null);
   const [unit, setUnit] = useState<CheckoutUnit>("kg");
   const [quantity, setQuantity] = useState(1);
   const [logisticsId, setLogisticsId] = useState(logisticsOptions[0].id);
-  const [paymentMethod, setPaymentMethod] = useState(paymentMethods[0]);
+  const [selectedPaymentCardCode, setSelectedPaymentCardCode] = useState(paymentGatewayCards[0].code);
   const [successOrder, setSuccessOrder] = useState<CustomerOrder | null>(null);
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!customerToken) return;
+
+    void (async () => {
+      try {
+        // Fetch addresses
+        const addrRes = await fetch("/api/profile/addresses", {
+          headers: { Authorization: `Bearer ${customerToken}` },
+        });
+        if (addrRes.ok) {
+          const payload = await addrRes.json();
+          if (Array.isArray(payload.data)) {
+            setDbAddresses(payload.data);
+            const main = payload.data.find((a: CustomerAddress) => a.isMain) || payload.data[0];
+            if (main) {
+              setAddress(main.fullAddress);
+              setAddressId(main.id);
+            }
+          }
+        }
+
+        // Fetch banks
+        const bankRes = await fetch("/api/profile/banks", {
+          headers: { Authorization: `Bearer ${customerToken}` },
+        });
+        if (bankRes.ok) {
+          const payload = await bankRes.json();
+          if (Array.isArray(payload.data)) {
+            if (payload.data.length > 0) {
+              setBankAccountId(payload.data[0].id);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Gagal memuat profil database di checkout:", err);
+      }
+    })();
+  }, [customerToken]);
+
+  const selectedPaymentCard = paymentGatewayCards.find((card) => card.code === selectedPaymentCardCode) ?? paymentGatewayCards[0];
+  const paymentMethod = selectedPaymentCard.method;
 
   const selectedLogistics =
     logisticsOptions.find((option) => option.id === logisticsId) ??
@@ -101,9 +221,14 @@ export default function CheckoutFlow() {
     );
   }
 
-  function handlePay() {
+  async function handlePay() {
     if (!session || !account) {
       setValidationMessage("Silakan login customer terlebih dahulu.");
+      return;
+    }
+
+    if (!customerToken) {
+      setValidationMessage("Token customer tidak ditemukan. Silakan login ulang.");
       return;
     }
 
@@ -112,33 +237,122 @@ export default function CheckoutFlow() {
       return;
     }
 
-    const order: CustomerOrder = {
-      id: createOrderId(),
-      productId: product.id,
-      productName: product.nama_produk,
-      farmerName: product.nama_petani,
-      location: product.lokasi,
-      basePricePerKg: basePrice,
-      quantity,
-      unit,
-      quantityKg,
-      address: address.trim(),
-      logisticsId: selectedLogistics.id,
-      logisticsLabel: selectedLogistics.label,
-      logisticsFee,
-      paymentMethod,
-      subtotal,
-      total,
-      createdAt: new Date().toISOString(),
-      status: "Diproses",
-      trackingNote: `Pembayaran diterima, armada ${selectedLogistics.label} sedang disiapkan.`,
-      truckLocation: getTruckLocation(address),
-      destination: address.trim(),
-    };
+    try {
+      let finalAddressId = addressId;
+      const matchedAddress = dbAddresses.find(
+        (a) => a.fullAddress.trim().toLowerCase() === address.trim().toLowerCase()
+      );
 
-    saveOrder(order);
-    setSuccessOrder(order);
-    setStep(3);
+      if (matchedAddress) {
+        finalAddressId = matchedAddress.id;
+      } else {
+        setValidationMessage("Menyimpan alamat pengiriman baru ke database...");
+        try {
+          const addrRes = await fetch("/api/profile/addresses", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${customerToken}`,
+            },
+            body: JSON.stringify({
+              label: "Alamat Pengiriman Baru",
+              recipientName: account.name || "Customer InfoTani",
+              phoneNumber: account.phone || "08xxxxxxxxxx",
+              fullAddress: address.trim(),
+              city: "Bandar Lampung",
+              province: "Lampung",
+              isMain: dbAddresses.length === 0,
+            }),
+          });
+          if (addrRes.ok) {
+            const payload = await addrRes.json();
+            finalAddressId = payload.data?.id;
+          }
+        } catch (e) {
+          console.error("Gagal menyimpan alamat baru ke database:", e);
+        }
+      }
+
+      setValidationMessage("Membuat pesanan...");
+
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${customerToken}`,
+        },
+        body: JSON.stringify({
+          items: [
+            {
+              productId: product.id,
+              quantityKg,
+            },
+          ],
+          addressId: finalAddressId,
+          customerBankAccountId: bankAccountId,
+          logisticsVehicleId: null,
+          logisticsCost: logisticsFee,
+          paymentMethod,
+          logisticsLabel: selectedLogistics.label,
+          notes: `Checkout via ${selectedLogistics.label}`,
+        }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload?.error || "Gagal menyimpan order ke database.");
+      }
+
+      const createdOrderId = payload?.data?.id;
+      if (!createdOrderId) {
+        throw new Error("Order berhasil dibuat tetapi ID tidak ditemukan.");
+      }
+
+      const paymentResponse = await fetch(`/api/orders/${createdOrderId}/payment`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${customerToken}`,
+        },
+        body: JSON.stringify({ paymentMethod }),
+      });
+
+      if (!paymentResponse.ok) {
+        const paymentError = await paymentResponse.json().catch(() => null);
+        throw new Error(paymentError?.error || "Gagal membuat record pembayaran.");
+      }
+
+      const order: CustomerOrder = {
+        id: payload?.data?.trackingId ?? createdOrderId,
+        productId: product.id,
+        productName: product.nama_produk,
+        farmerName: product.nama_petani,
+        location: product.lokasi,
+        basePricePerKg: basePrice,
+        quantity,
+        unit,
+        quantityKg,
+        address: address.trim(),
+        logisticsId: selectedLogistics.id,
+        logisticsLabel: selectedLogistics.label,
+        logisticsFee,
+        paymentMethod,
+        subtotal,
+        total,
+        createdAt: payload?.data?.createdAt ?? new Date().toISOString(),
+        status: "Diproses",
+        trackingNote: `Order tersimpan di database. Armada ${selectedLogistics.label} sedang disiapkan.`,
+        truckLocation: getTruckLocation(address),
+        destination: address.trim(),
+      };
+
+      saveOrder(order);
+      setSuccessOrder(order);
+      setStep(3);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Gagal memproses checkout.";
+      setValidationMessage(message);
+    }
   }
 
   if (!session || !account) {
@@ -382,28 +596,40 @@ export default function CheckoutFlow() {
                   <section className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
                     <div className="flex items-center gap-2 text-emerald-400">
                       <ShieldCheck className="h-5 w-5" />
-                      <h2 className="text-lg font-semibold">Metode Pembayaran</h2>
+                      <h2 className="text-lg font-semibold">Payment</h2>
                     </div>
 
-                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                      {paymentMethods.map((method) => {
-                        const active = paymentMethod === method;
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {paymentGatewayCards.map((card) => {
+                        const active = selectedPaymentCardCode === card.code;
 
                         return (
                           <button
-                            key={method}
+                            key={card.code}
                             type="button"
-                            onClick={() => setPaymentMethod(method)}
-                            className={`rounded-2xl border px-4 py-4 text-left transition ${
+                            onClick={() => setSelectedPaymentCardCode(card.code)}
+                            className={`overflow-hidden rounded-3xl border text-left transition ${
                               active
                                 ? "border-emerald-400 bg-emerald-500/10"
                                 : "border-zinc-800 bg-zinc-900 hover:border-zinc-700"
                             }`}
                           >
-                            <p className="font-semibold text-zinc-100">{method}</p>
-                            <p className="mt-1 text-sm text-zinc-400">
-                              Pilihan pembayaran customer.
-                            </p>
+                            <div className="flex h-28 items-center justify-center bg-zinc-950 px-4">
+                              <Image
+                                src={card.image}
+                                alt={card.title}
+                                width={280}
+                                height={96}
+                                className="h-16 w-auto object-contain"
+                              />
+                            </div>
+                            <div className="px-4 py-4">
+                              <p className="text-base font-semibold text-zinc-100">{card.title}</p>
+                              <p className="mt-1 text-sm text-zinc-400">{card.description}</p>
+                              <p className="mt-2 text-xs uppercase tracking-[0.18em] text-emerald-300">
+                                {paymentMethodLabels[card.method]}
+                              </p>
+                            </div>
                           </button>
                         );
                       })}
@@ -420,7 +646,7 @@ export default function CheckoutFlow() {
                       <p>Alamat: {address}</p>
                       <p>Angkutan: {selectedLogistics.label}</p>
                       <p>Jumlah: {quantityKg.toFixed(2)} kg</p>
-                      <p>Metode: {paymentMethod}</p>
+                      <p>Metode: {paymentMethodLabels[paymentMethod]}</p>
                     </div>
 
                     {validationMessage && (

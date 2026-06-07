@@ -5,19 +5,18 @@ import { Prisma } from '@prisma/client';
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { productId: string } }
+  context: { params: Promise<{ productId: string }> }
 ) {
   try {
-    const user = await requireAuth(req);
-    if (!user || user.role !== 'FARMER') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAuth(req, ['ADMIN', 'FARMER']);
+    if (!auth.user) return NextResponse.json({ error: auth.error }, { status: auth.status });
+    const user = auth.user;
 
-    const { productId } = params;
+    const { productId } = await context.params;
     const body = await req.json();
-    const { pricePerKg } = body;
+    const { price } = body;
 
-    if (!pricePerKg || pricePerKg < 0) {
+    if (!price || price < 0) {
       return NextResponse.json(
         { error: 'Invalid price. Price must be greater than 0' },
         { status: 400 }
@@ -41,7 +40,7 @@ export async function PATCH(
     const updated = await prisma.product.update({
       where: { id: productId },
       data: {
-        pricePerKg: new Prisma.Decimal(pricePerKg),
+        price: new Prisma.Decimal(price),
       },
     });
 
@@ -50,7 +49,7 @@ export async function PATCH(
       data: {
         id: updated.id,
         name: updated.name,
-        pricePerKg: parseFloat(updated.pricePerKg.toString()),
+        price: parseFloat(updated.price.toString()),
       },
     });
   } catch (error) {

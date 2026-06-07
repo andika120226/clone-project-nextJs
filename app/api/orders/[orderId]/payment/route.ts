@@ -2,12 +2,23 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createTransactionAndGetUrl } from "@/lib/midtrans";
 
+function resolvePaymentMethod(value: unknown) {
+  const input = String(value || "").trim().toUpperCase();
+  if (input === "BCA" || input === "TRANSFER BANK" || input === "BANK_TRANSFER") return "BANK_TRANSFER";
+  if (input === "PAYPAL" || input === "CASH ON DELIVERY" || input === "COD") return "E_WALLET";
+  if (input === "VIRTUAL ACCOUNT") return "BANK_TRANSFER";
+  if (input === "QRIS") return "QRIS";
+  return "BANK_TRANSFER";
+}
+
 export async function POST(
   req: NextRequest,
-  { params }: { params: { orderId: string } }
+  context: { params: Promise<{ orderId: string }> }
 ) {
   try {
-    const { orderId } = params;
+    const { orderId } = await context.params;
+    const body = await req.json().catch(() => ({}));
+    const requestedMethod = resolvePaymentMethod(body?.paymentMethod);
 
     // Get order with details
     const order = await prisma.order.findUnique({
@@ -21,6 +32,14 @@ export async function POST(
           },
         },
         payment: true,
+        customer: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+          },
+        },
       },
     });
 
@@ -50,9 +69,9 @@ export async function POST(
     const { token, url } = await createTransactionAndGetUrl(
       orderId,
       totalAmount,
-      order.customerId,
-      order.customerId,
-      order.customerId,
+      order.customer.name,
+      order.customer.email,
+      order.customer.phone || order.customer.email,
       items
     );
 
@@ -64,6 +83,7 @@ export async function POST(
           status: "PENDING",
           midtransTransactionId: token,
           midtransUrl: url,
+          method: requestedMethod as "CREDIT_CARD" | "BANK_TRANSFER" | "QRIS" | "E_WALLET",
         },
       });
     } else {
@@ -71,7 +91,7 @@ export async function POST(
         data: {
           orderId,
           amount: totalAmount,
-          method: "QRIS",
+          method: requestedMethod as "CREDIT_CARD" | "BANK_TRANSFER" | "QRIS" | "E_WALLET",
           status: "PENDING",
           midtransTransactionId: token,
           midtransUrl: url,

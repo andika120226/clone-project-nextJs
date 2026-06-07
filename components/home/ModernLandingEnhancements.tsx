@@ -197,12 +197,13 @@ export default function ModernLandingEnhancements() {
           transition={{ duration: 0.6 }}
         >
           <Image
-            src="/hero-tani.jpg"
+            src="/Gambar1.webp"
             alt="Panen modern dengan dukungan teknologi"
             width={1100}
             height={780}
             className="h-80 w-full rounded-3xl object-cover lg:h-95"
             priority
+            sizes="(max-width: 1024px) 100vw, 550px"
           />
         </motion.div>
 

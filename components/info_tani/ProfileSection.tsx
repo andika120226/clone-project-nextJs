@@ -41,6 +41,8 @@ export default function ProfileSection({
             fill
             className="object-cover"
             priority
+            sizes="(max-width: 1024px) 100vw, 800px"
+            unoptimized={bannerImage.startsWith("data:")}
           />
         ) : (
           <div className="absolute inset-0 bg-linear-to-br from-cyan-100 via-white to-slate-100" />
@@ -58,6 +60,8 @@ export default function ProfileSection({
                 fill
                 className="object-cover"
                 priority
+                sizes="(max-width: 768px) 150px, 200px"
+                unoptimized={foto_profil?.startsWith("data:")}
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center bg-linear-to-br from-cyan-50 to-slate-100 text-center text-sm font-semibold text-slate-500">
